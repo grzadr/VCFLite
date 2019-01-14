@@ -19,9 +19,9 @@ endif()
 
 add_executable(VCFLite
   ${CMAKE_CURRENT_SOURCE_DIR}/src/vcflite.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/connect.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/create.cpp
 )
-
-target_link_libraries(VCFLite sqlite3)
 
 target_include_directories(VCFLite
     PRIVATE
@@ -30,6 +30,8 @@ target_include_directories(VCFLite
         ${CMAKE_CURRENT_SOURCE_DIR}/hkl/agizmo/include
         ${SQLITE3_INCLUDE_DIR}
 )
+
+target_link_libraries(VCFLite sqlite3)
 
 target_compile_options(VCFLite PRIVATE
     -Werror -Wall
