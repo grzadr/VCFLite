@@ -28,6 +28,7 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
       insert_comment(db, std::get<VCF::VCFComment>(*ele));
     } else if (std::holds_alternative<VCF::VCFHeader>(*ele)) {
       if (samples.has_value()) reader.provideSamples(*samples);
+      break;
     } else {
     }
 
