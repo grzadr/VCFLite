@@ -1,8 +1,7 @@
 #include <vcflite/create.hpp>
+#include <vcflite/query.hpp>
 
 int VCFLite::Creator::init(sqlite3 *db) {
-  sqlite3_stmt *stmt;
-
   vector<string> drop_queries{
       "DROP TABLE IF EXISTS MetaInfo;",
       "DROP TABLE IF EXISTS MetaInfoContigs;",
@@ -14,15 +13,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "DROP TABLE IF EXISTS VariantsInfo;",
   };
 
-  for (const auto &query : drop_queries) {
-    sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL);
-    int rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE) {
-      throw runerror{"ERROR inserting data: " + string(sqlite3_errmsg(db)) +
-                     "\n"};
-    }
-    sqlite3_finalize(stmt);
-  }
+  exec(db, drop_queries.begin(), drop_queries.end());
 
   vector<string> create_queries{
       "CREATE TABLE MetaInfo("
@@ -33,25 +24,23 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "meta_type TEXT DEFAULT NULL COLLATE NOCASE,"
       "meta_number TEXT DEFAULT NULL COLLATE NOCASE);",
 
+      "CREATE INDEX idxMetaInfo_id ON MetaInfo(meta_id);",
+
       "CREATE TABLE MetaInfoExtra("
       "id_meta INTEGER NOT NULL,"
       "meta_extra_field TEXT NOT NULL COLLATE NOCASE,"
       "meta_extra_value TEXT NOT NULL COLLATE NOCASE,"
-      "PRIMARY KEY(id_meta, meta_extra_field));",
+      ""
+      "PRIMARY KEY(id_meta, meta_extra_field),"
+      ""
+      "FOREIGN KEY(id_meta) REFERENCES MetaInfo(id_meta)"
+      ");",
 
-      "CREATE TABLE MetainfoContig("
+      "CREATE TABLE MetaInfoContigs("
       "id_contig TEXT PRIMARY KEY NOT NULL COLLATE NOCASE,"
       "contig_length INTEGER NOT NULL);"};
 
-  for (const auto &query : create_queries) {
-    sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, NULL);
-    int rc = sqlite3_step(stmt);
-    if (rc != SQLITE_DONE) {
-      throw runerror{"ERROR inserting data: " + string(sqlite3_errmsg(db)) +
-                     "\n"};
-    }
-    sqlite3_finalize(stmt);
-  }
+  exec(db, create_queries.begin(), create_queries.end());
 
   return 0;
 }

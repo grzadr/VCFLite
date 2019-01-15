@@ -21,6 +21,7 @@ add_executable(VCFLite
   ${CMAKE_CURRENT_SOURCE_DIR}/src/vcflite.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/connect.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/create.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/populate.cpp
 )
 
 target_include_directories(VCFLite
