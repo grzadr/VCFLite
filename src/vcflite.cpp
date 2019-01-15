@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include <agizmo/args.hpp>
-#include <hkl/vcf.hpp>
 #include <vcflite/connect.hpp>
 
 using namespace AGizmo;
@@ -17,26 +16,22 @@ int main(int argc, char *argv[]) {
   args.addArgument("create", "Force to create db", Args::ValueType::Bool, 'c');
   args.addArgument("samples", "List with samples, delimetered with ','.",
                    Args::ValueType::String, 's');
+  args.addArgument("optimize", "Optimize database.", Args::ValueType::Bool,
+                   'o');
 
   args.parse(argc, argv);
 
   VCFLite::Connector db{*args.getArg("db_path").getValue(),
                         args.getArg("create").isSet()};
 
-  VCF::VCFReader reader(*args.getArg("vcf_file").getValue());
+  if (const auto &vcf_file = args.getArg("vcf_file").getValue()) {
+    db.parseVCF(*vcf_file, args.getArg("samples").getValue());
+  }
 
-  while (auto ele = reader()) {
-    std::visit(
-        [&args, &reader](auto &arg) {
-          using T = std::decay_t<decltype(arg)>;
-          if constexpr (std::is_same_v<T, VCF::VCFComment>) {
-          } else if constexpr (std::is_same_v<T, VCF::VCFHeader>) {
-            if (const auto samples = args.getArg("samples").getValue())
-              reader.provideSamples(*samples);
-          } else {
-          }
-        },
-        *ele);
+  db.check();
+
+  if (args.getArg("optimize").isSet()) {
+    db.optimize();
   }
 
   return 0;

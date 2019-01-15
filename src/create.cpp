@@ -2,6 +2,8 @@
 #include <vcflite/query.hpp>
 
 int VCFLite::Creator::init(sqlite3 *db) {
+  transaction(db);
+
   vector<string> drop_queries{
       "DROP TABLE IF EXISTS MetaInfo;",
       "DROP TABLE IF EXISTS MetaInfoContigs;",
@@ -17,30 +19,40 @@ int VCFLite::Creator::init(sqlite3 *db) {
 
   vector<string> create_queries{
       "CREATE TABLE MetaInfo("
-      "id_meta INTEGER PRIMARY KEY NOT NULL,"
       "meta_field TEXT NOT NULL COLLATE NOCASE,"
-      "meta_description TEXT NOT NULL COLLATE NOCASE,"
       "meta_id TEXT DEFAULT NULL COLLATE NOCASE,"
+      "meta_description TEXT DEFAULT NULL COLLATE NOCASE,"
       "meta_type TEXT DEFAULT NULL COLLATE NOCASE,"
-      "meta_number TEXT DEFAULT NULL COLLATE NOCASE);",
+      "meta_number TEXT DEFAULT NULL COLLATE NOCASE,"
+      "meta_source TEXT DEFAULT NULL COLLATE NOCASE,"
+      "meta_version TEXT DEFAULT NULL COLLATE NOCASE,"
+      ""
+      "PRIMARY KEY(meta_field, meta_id)"
+      ");",
 
       "CREATE INDEX idxMetaInfo_id ON MetaInfo(meta_id);",
 
       "CREATE TABLE MetaInfoExtra("
-      "id_meta INTEGER NOT NULL,"
+      "meta_field TEXT NOT NULL COLLATE NOCASE,"
+      "meta_id TEXT DEFAULT NULL COLLATE NOCASE,"
       "meta_extra_field TEXT NOT NULL COLLATE NOCASE,"
       "meta_extra_value TEXT NOT NULL COLLATE NOCASE,"
       ""
-      "PRIMARY KEY(id_meta, meta_extra_field),"
+      "PRIMARY KEY(meta_extra_field, meta_field, meta_id),"
       ""
-      "FOREIGN KEY(id_meta) REFERENCES MetaInfo(id_meta)"
+      "FOREIGN KEY(meta_field, meta_id) "
+      "REFERENCES MetaInfo(meta_field, meta_id)"
+      ""
       ");",
 
       "CREATE TABLE MetaInfoContigs("
       "id_contig TEXT PRIMARY KEY NOT NULL COLLATE NOCASE,"
-      "contig_length INTEGER NOT NULL);"};
+      "contig_length INTEGER NOT NULL"
+      ");"};
 
   exec(db, create_queries.begin(), create_queries.end());
+
+  commit(db);
 
   return 0;
 }

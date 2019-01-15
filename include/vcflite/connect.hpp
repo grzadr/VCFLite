@@ -1,14 +1,21 @@
 #pragma once
 
 #include <iostream>
+#include <optional>
 #include <stdexcept>
 #include <string>
 
 #include <sqlite3.h>
 
 #include <vcflite/create.hpp>
+#include <vcflite/query.hpp>
+
+#include <hkl/vcf.hpp>
+
+using namespace HKL;
 
 using runerror = std::runtime_error;
+using std::optional;
 using std::string;
 
 namespace VCFLite {
@@ -16,7 +23,6 @@ namespace VCFLite {
 class Connector {
  private:
   sqlite3* db;
-  //  std::unique_ptr<sqlite3> sqlite;
   int last_result_code = 0;
   Creator creator{};
 
@@ -29,19 +35,25 @@ class Connector {
     open(db_path, create);
   }
 
-  int close() {
-    //    if (sqlite) {
-    //      last_result_code = sqlite3_close_v2(sqlite.get());
-    //      sqlite = nullptr;
-    //      return last_result_code;
-    //    } else
-    //      return SQLITE_OK;
-    return sqlite3_close_v2(db);
-  }
+  int close() { return sqlite3_close_v2(db); }
 
   ~Connector() {
     if (close() != SQLITE_OK) std::cerr << "Database didn't close!\n";
   }
+
+  int check() {
+    exec(db, "PRAGMA foreign_key_check;");
+    exec(db, "PRAGMA integrity_check;");
+    return 0;
+  }
+
+  int optimize() {
+    exec(db, "PRAGMA optimize;");
+    return 0;
+  }
+
+  int parseVCF(const string& vcf_file, const optional<string>& samples);
+
 };  // Connector
 
 }  // namespace VCFLite
