@@ -52,7 +52,13 @@ int insert_variant_alleles(sqlite3* db, const string& var_chrom, int var_start,
 int insert_variant_info(sqlite3* db, const string& var_chrom, int var_start,
                         int var_end, const map_str& var_info);
 
+int insert_variant_genotypes(sqlite3* db, const string& var_chrom,
+                             int var_start, int var_end,
+                             const vector<HKL::VCF::VCFGenotype> genotypes,
+                             const vector<string>& samples_reference,
+                             const vector<int>& samples_picked);
+
 int insert_record(sqlite3* db, const HKL::VCF::VCFRecord& record,
                   const vector<string>& samples_reference,
-                  const vector<int>& picked_samples);
+                  const vector<int>& samples_picked);
 }  // namespace VCFLite

@@ -8,11 +8,18 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "DROP TABLE IF EXISTS MetaInfo;",
       "DROP TABLE IF EXISTS MetaInfoContigs;",
       "DROP TABLE IF EXISTS MetaInfoExtra;",
+
       "DROP TABLE IF EXISTS Variants;",
       "DROP TABLE IF EXISTS VariantsIDs;",
       "DROP TABLE IF EXISTS VariantsFilters;",
       "DROP TABLE IF EXISTS VariantsAlleles;",
       "DROP TABLE IF EXISTS VariantsInfo;",
+
+      "DROP TABLE IF EXISTS Samples;",
+      "DROP TABLE IF EXISTS SamplesInfo;",
+
+      "DROP TABLE IF EXISTS Genotypes;",
+      "DROP TABLE IF EXISTS GenotypesInfo;",
   };
 
   exec(db, drop_queries.begin(), drop_queries.end());
@@ -112,8 +119,43 @@ int VCFLite::Creator::init(sqlite3 *db) {
       ""
       ");",
 
-      "CREATE UNIQUE INDEX idxVariantsinfo"
+      "CREATE UNIQUE INDEX idxVariantsInfo"
       " ON VariantsInfo(var_chrom, var_start, var_end, var_key);",
+
+      "CREATE TABLE Genotypes ("
+      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
+      "var_start INTEGER NOT NULL,"
+      "var_end INTEGER NOT NULL,"
+      "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
+      ""
+      "PRIMARY KEY(genotype_sample, var_chrom, var_start, var_end), "
+      ""
+      "FOREIGN KEY(var_chrom, var_start, var_end) "
+      "REFERENCES Variants(var_chrom, var_start, var_end)"
+      ");",
+
+      "CREATE UNIQUE INDEX idxGenotypes"
+      " ON Genotypes(var_chrom, var_start, var_end, genotype_sample);",
+
+      "CREATE TABLE GenotypesInfo ("
+      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
+      "var_start INTEGER NOT NULL,"
+      "var_end INTEGER NOT NULL,"
+      "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
+      "genotype_key TEXT NOT NULL COLLATE NOCASE,"
+      "genotype_value TEXT DEFAULT NULL COLLATE NOCASE,"
+      ""
+      "PRIMARY KEY(genotype_key, genotype_sample, var_chrom, var_start, "
+      "var_end), "
+      ""
+      "FOREIGN KEY(genotype_sample, var_chrom, var_start, var_end) "
+      "REFERENCES Genotypes(genotype_sample, var_chrom, var_start, var_end)"
+      ");",
+
+      "CREATE UNIQUE INDEX idxGenotypesInfo"
+      " ON GenotypesInfo(var_chrom, var_start, var_end, genotype_sample, "
+      "genotype_key);",
+
   };
 
   exec(db, create_queries.begin(), create_queries.end());

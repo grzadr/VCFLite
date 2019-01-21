@@ -280,9 +280,63 @@ int VCFLite::insert_variant_info(sqlite3 *db, const std::string &var_chrom,
   return SQLITE_OK;
 }
 
+int VCFLite::insert_variant_genotypes(
+    sqlite3 *db, const string &var_chrom, int var_start, int var_end,
+    const vector<HKL::VCF::VCFGenotype> genotypes,
+    const vector<string> &samples_reference,
+    const vector<int> &samples_picked) {
+  sqlite3_stmt *stmt;
+  const string query =
+      "INSERT INTO Genotypes "
+      "(var_chrom, var_start, var_end, genotype_sample) "
+      "VALUES (?1,  ?2, ?3, ?4);";
+
+  for (const auto &i : samples_picked) {
+    sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
+
+    const auto genotype_sample = samples_reference.begin() + i;
+
+    sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 2, var_start);
+    sqlite3_bind_int(stmt, 3, var_end);
+    sqlite3_bind_text(stmt, 4, genotype_sample->c_str(), -1, SQLITE_TRANSIENT);
+
+    finalize(db, stmt);
+
+    const string query_genotypeinfo =
+        "INSERT INTO GenotypesInfo "
+        "(var_chrom, var_start, var_end, genotype_sample, genotype_key, "
+        "genotype_value) "
+        "VALUES (?1,  ?2, ?3, ?4, ?5, ?6);";
+
+    for (const auto &[key, value] : *(genotypes.begin() + i)) {
+      sqlite3_prepare_v2(db, query_genotypeinfo.c_str(), -1, &stmt, nullptr);
+
+      const auto genotype_sample = samples_reference.begin() + i;
+
+      sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
+      sqlite3_bind_int(stmt, 2, var_start);
+      sqlite3_bind_int(stmt, 3, var_end);
+      sqlite3_bind_text(stmt, 4, genotype_sample->c_str(), -1,
+                        SQLITE_TRANSIENT);
+      sqlite3_bind_text(stmt, 5, key.c_str(), -1, SQLITE_TRANSIENT);
+
+      if (const auto genotype_value = value)
+        sqlite3_bind_text(stmt, 6, genotype_value->c_str(), -1,
+                          SQLITE_TRANSIENT);
+      else
+        sqlite3_bind_null(stmt, 6);
+
+      finalize(db, stmt);
+    }
+  }
+
+  return SQLITE_OK;
+}
+
 int VCFLite::insert_record(sqlite3 *db, const HKL::VCF::VCFRecord &record,
                            const vector<string> &samples_reference,
-                           const vector<int> &picked_samples) {
+                           const vector<int> &samples_picked) {
   insert_variant(db, record.getChrom(), record.getStart(), record.getEnd(),
                  record.getLength(), record.getRef(), record.getQual(),
                  record.getPass(), record.getAlleles());
@@ -300,5 +354,11 @@ int VCFLite::insert_record(sqlite3 *db, const HKL::VCF::VCFRecord &record,
   insert_variant_info(db, record.getChrom(), record.getStart(), record.getEnd(),
                       record.getInfo());
 
-  return 0;
+  if (auto var_genotypes = record.getGenotypes();
+      !var_genotypes.empty() && !samples_picked.empty())
+    insert_variant_genotypes(db, record.getChrom(), record.getStart(),
+                             record.getEnd(), var_genotypes, samples_reference,
+                             samples_picked);
+
+  return SQLITE_OK;
 }
