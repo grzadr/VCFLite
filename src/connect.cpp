@@ -24,15 +24,15 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
   transaction(db);
 
   while (auto ele = reader()) {
-    if (std::holds_alternative<VCF::VCFComment>(*ele)) {
+    if (std::holds_alternative<VCF::VCFComment>(*ele))
       insert_comment(db, std::get<VCF::VCFComment>(*ele));
-    } else if (std::holds_alternative<VCF::VCFHeader>(*ele)) {
+    else if (std::holds_alternative<VCF::VCFHeader>(*ele)) {
       if (samples.has_value()) reader.provideSamples(*samples);
-      break;
     } else {
+      insert_record(db, std::get<VCF::VCFRecord>(*ele),
+                    reader.getSamplesReference(), reader.getSamplesPicked());
+      break;
     }
-
-    //    break;
   }
 
   commit(db);

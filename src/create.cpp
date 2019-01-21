@@ -9,9 +9,9 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "DROP TABLE IF EXISTS MetaInfoContigs;",
       "DROP TABLE IF EXISTS MetaInfoExtra;",
       "DROP TABLE IF EXISTS Variants;",
-      "DROP TABLE IF EXISTS VariantsID;",
-      "DROP TABLE IF EXISTS VariantsAlt;",
-      "DROP TABLE IF EXISTS VariantsFilter;",
+      "DROP TABLE IF EXISTS VariantsIDs;",
+      "DROP TABLE IF EXISTS VariantsFilters;",
+      "DROP TABLE IF EXISTS VariantsAlleles;",
       "DROP TABLE IF EXISTS VariantsInfo;",
   };
 
@@ -47,10 +47,73 @@ int VCFLite::Creator::init(sqlite3 *db) {
 
       "CREATE INDEX idxMetaInfoExtra_id ON MetaInfo(meta_field, meta_id);",
 
-      //      "CREATE TABLE MetaInfoContigs("
-      //      "id_contig TEXT PRIMARY KEY NOT NULL COLLATE NOCASE,"
-      //      "contig_length INTEGER NOT NULL"
-      //      ");"
+      "CREATE TABLE Variants ("
+      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
+      "var_start INTEGER NOT NULL,"
+      "var_end INTEGER NOT NULL,"
+      "var_length INTEGER NOT NULL,"
+      "var_ref TEXT NOT NULL COLLATE NOCASE,"
+      "var_qual REAL DEFAULT NULL,"
+      "var_pass INTEGER DEFAULT NULL,"
+      "var_alleles INTEGER DEFAULT NULL,"
+      "PRIMARY KEY(var_chrom, var_start, var_end)"
+      ");",
+
+      "CREATE TABLE VariantsIDs ("
+      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
+      "var_start INTEGER NOT NULL,"
+      "var_end INTEGER NOT NULL,"
+      "var_id TEXT NOT NULL COLLATE NOCASE,"
+      "PRIMARY KEY(var_chrom, var_start, var_end, var_id),"
+      ""
+      "FOREIGN KEY(var_chrom, var_start, var_end) "
+      "REFERENCES Variants(var_chrom, var_start, var_end)"
+      ""
+      ");",
+
+      "CREATE TABLE VariantsFilters ("
+      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
+      "var_start INTEGER NOT NULL,"
+      "var_end INTEGER NOT NULL,"
+      "var_filter TEXT NOT NULL COLLATE NOCASE,"
+      "PRIMARY KEY(var_filter, var_chrom, var_start, var_end),"
+      ""
+      "FOREIGN KEY(var_chrom, var_start, var_end) "
+      "REFERENCES Variants(var_chrom, var_start, var_end)"
+      ""
+      ");",
+
+      "CREATE TABLE VariantsAlleles ("
+      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
+      "var_start INTEGER NOT NULL,"
+      "var_end INTEGER NOT NULL,"
+      "var_allel_id INTEGER NOT NULL,"
+      "var_allel_seq TEXT NOT NULL COLLATE NOCASE,"
+      "PRIMARY KEY(var_chrom, var_start, var_end, var_allel_seq),"
+      ""
+      "FOREIGN KEY(var_chrom, var_start, var_end) "
+      "REFERENCES Variants(var_chrom, var_start, var_end)"
+      ""
+      ");",
+
+      "CREATE UNIQUE INDEX idxVariantsAlleles"
+      " ON VariantsAlleles(var_chrom, var_start, var_end, var_allel_seq);",
+
+      "CREATE TABLE VariantsInfo ("
+      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
+      "var_start INTEGER NOT NULL,"
+      "var_end INTEGER NOT NULL,"
+      "var_key TEXT NOT NULL COLLATE NOCASE,"
+      "var_value TEXT DEFAULT NULL COLLATE NOCASE,"
+      "PRIMARY KEY(var_key, var_chrom, var_start, var_end),"
+      ""
+      "FOREIGN KEY(var_chrom, var_start, var_end) "
+      "REFERENCES Variants(var_chrom, var_start, var_end)"
+      ""
+      ");",
+
+      "CREATE UNIQUE INDEX idxVariantsinfo"
+      " ON VariantsInfo(var_chrom, var_start, var_end, var_key);",
   };
 
   exec(db, create_queries.begin(), create_queries.end());
