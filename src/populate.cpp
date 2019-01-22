@@ -288,20 +288,70 @@ int VCFLite::insert_variant_genotypes(
   sqlite3_stmt *stmt;
   const string query =
       "INSERT INTO Genotypes "
-      "(var_chrom, var_start, var_end, genotype_sample) "
-      "VALUES (?1,  ?2, ?3, ?4);";
+      "(var_chrom, var_start, var_end, genotype_sample, genotype_gt, "
+      "genotype_dp, genotype_phased_gt, genotype_phased_pos) "
+      "VALUES (?1,  ?2, ?3, ?4, ?5, ?6, ?7, ?8);";
 
   for (const auto &i : samples_picked) {
     sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
 
     const auto genotype_sample = samples_reference.begin() + i;
+    const auto genotype_record = *(genotypes.begin() + i);
 
     sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_int(stmt, 2, var_start);
     sqlite3_bind_int(stmt, 3, var_end);
     sqlite3_bind_text(stmt, 4, genotype_sample->c_str(), -1, SQLITE_TRANSIENT);
 
-    finalize(db, stmt);
+    if (const auto gt = genotype_record.getGT()) {
+      sqlite3_bind_text(stmt, 5, gt->c_str(), -1, SQLITE_TRANSIENT);
+
+      if (const auto gt = genotype_record.get("DP");
+          gt.has_value() && *gt != ".")
+        sqlite3_bind_int(stmt, 6, std::stoi((*gt)->c_str()));
+      else
+        sqlite3_bind_null(stmt, 6);
+
+      finalize(db, stmt);
+
+      const string query_genotype_alleles =
+          "INSERT INTO GenotypesAlleles "
+          "(var_chrom, var_start, var_end, genotype_sample, "
+          "genotype_position, genotype_allele) "
+          "VALUES (?1,  ?2, ?3, ?4, ?5, ?6);";
+
+      for (const auto &allele : genotype_record.getAlleles()) {
+        sqlite3_prepare_v2(db, query_genotype_alleles.c_str(), -1, &stmt,
+                           nullptr);
+
+        sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 2, var_start);
+        sqlite3_bind_int(stmt, 3, var_end);
+        sqlite3_bind_text(stmt, 4, genotype_sample->c_str(), -1,
+                          SQLITE_TRANSIENT);
+
+        sqlite3_bind_int(stmt, 5, allele.getPosition());
+
+        if (const auto &gt = allele.getAllele())
+          sqlite3_bind_int(stmt, 6, *gt);
+        else
+          sqlite3_bind_null(stmt, 6);
+
+        finalize(db, stmt);
+      }
+    } else {
+      sqlite3_bind_null(stmt, 5);
+      sqlite3_bind_null(stmt, 6);
+    }
+
+    if (genotype_record.isPhased()) {
+      sqlite3_bind_text(stmt, 7, genotype_record.getPhasedGT()->c_str(), -1,
+                        SQLITE_TRANSIENT);
+      sqlite3_bind_int(stmt, 8, (*genotype_record.getPhasedPosition()));
+    } else {
+      sqlite3_bind_null(stmt, 7);
+      sqlite3_bind_null(stmt, 8);
+    }
 
     const string query_genotypeinfo =
         "INSERT INTO GenotypesInfo "
@@ -309,7 +359,7 @@ int VCFLite::insert_variant_genotypes(
         "genotype_value) "
         "VALUES (?1,  ?2, ?3, ?4, ?5, ?6);";
 
-    for (const auto &[key, value] : *(genotypes.begin() + i)) {
+    for (const auto &[key, value] : genotype_record) {
       sqlite3_prepare_v2(db, query_genotypeinfo.c_str(), -1, &stmt, nullptr);
 
       const auto genotype_sample = samples_reference.begin() + i;

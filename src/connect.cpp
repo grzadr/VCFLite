@@ -31,7 +31,7 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
     } else {
       insert_record(db, std::get<VCF::VCFRecord>(*ele),
                     reader.getSamplesReference(), reader.getSamplesPicked());
-      break;
+      //      break;
     }
   }
 

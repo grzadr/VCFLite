@@ -1,3 +1,0 @@
-# VCFLite
-
-## TODO
