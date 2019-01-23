@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include <vcflite/query.hpp>
+#include <vcflite/select.hpp>
 
 int VCFLite::insert_meta(sqlite3 *db, const string &field, const string &id,
                          opt_str description, opt_str type, opt_str number,
@@ -134,80 +135,79 @@ int VCFLite::insert_comment(sqlite3 *db, const HKL::VCF::VCFComment &comment) {
     return insert_comment_simple(db, comment.getField(), comment.getValue());
 }
 
-int VCFLite::insert_variant(sqlite3 *db, const string &var_chrom, int var_start,
-                            int var_end, int var_length,
-                            const std::string &var_ref, opt_double var_qual,
-                            opt_int var_pass, int var_alleles) {
+int VCFLite::insert_variant(sqlite3 *db, const int id_variant,
+                            const string &variant_chrom, int variant_start,
+                            int variant_end, int variant_length,
+                            const string &variant_ref, opt_double variant_qual,
+                            opt_int variant_pass, int variant_alleles) {
   sqlite3_stmt *stmt;
 
   sqlite3_prepare_v2(db,
                      "INSERT INTO Variants "
-                     "(var_chrom, var_start, var_end, var_length, "
-                     "var_ref, var_qual, var_pass, var_alleles) "
-                     "VALUES (?1,  ?2, ?3, ?4, ?5, ?6, ?7, ?8);",
+                     "(id_variant, variant_chrom, variant_start, variant_end, "
+                     "variant_length, variant_ref, variant_qual, variant_pass, "
+                     "variant_alleles) "
+                     "VALUES (?1,  ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",
                      -1, &stmt, nullptr);
 
-  sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-  sqlite3_bind_int(stmt, 2, var_start);
-  sqlite3_bind_int(stmt, 3, var_end);
-  sqlite3_bind_int(stmt, 4, var_length);
-  sqlite3_bind_text(stmt, 5, var_ref.c_str(), -1, SQLITE_TRANSIENT);
+  int index = 0;
 
-  if (auto qual = var_qual)
-    sqlite3_bind_double(stmt, 6, *qual);
+  sqlite3_bind_int(stmt, ++index, id_variant);
+  sqlite3_bind_text(stmt, ++index, variant_chrom.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int(stmt, ++index, variant_start);
+  sqlite3_bind_int(stmt, ++index, variant_end);
+  sqlite3_bind_int(stmt, ++index, variant_length);
+  sqlite3_bind_text(stmt, ++index, variant_ref.c_str(), -1, SQLITE_TRANSIENT);
+
+  if (auto qual = variant_qual)
+    sqlite3_bind_double(stmt, ++index, *qual);
   else
-    sqlite3_bind_null(stmt, 6);
+    sqlite3_bind_null(stmt, ++index);
 
-  if (auto pass = var_pass)
-    sqlite3_bind_int(stmt, 7, *pass);
+  if (auto pass = variant_pass)
+    sqlite3_bind_int(stmt, ++index, *pass);
   else
-    sqlite3_bind_null(stmt, 7);
+    sqlite3_bind_null(stmt, ++index);
 
-  sqlite3_bind_int(stmt, 8, var_alleles);
+  sqlite3_bind_int(stmt, ++index, variant_alleles);
 
   return finalize(db, stmt);
 }
 
-int VCFLite::insert_variant_ids(sqlite3 *db, const string &var_chrom,
-                                int var_start, int var_end,
+int VCFLite::insert_variant_ids(sqlite3 *db, const int id_variant,
                                 const vector<string> ids) {
   sqlite3_stmt *stmt;
 
   const string query =
       "INSERT INTO VariantsIDs "
-      "(var_chrom, var_start, var_end, var_id) "
-      "VALUES (?1,  ?2, ?3, ?4);";
+      "(id_variant, variant_id) "
+      "VALUES (?1,  ?2);";
 
   for (const auto &id : ids) {
     sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
-    sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 2, var_start);
-    sqlite3_bind_int(stmt, 3, var_end);
-    sqlite3_bind_text(stmt, 4, id.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 1, id_variant);
+    sqlite3_bind_text(stmt, 2, id.c_str(), -1, SQLITE_TRANSIENT);
     finalize(db, stmt);
   }
 
   return SQLITE_OK;
 }
 
-int VCFLite::insert_variant_filters(sqlite3 *db, const std::string &var_chrom,
-                                    int var_start, int var_end,
-                                    const opt_vec_str &var_filters) {
-  if (const auto &filters = var_filters) {
+int VCFLite::insert_variant_filters(sqlite3 *db, const int id_variant,
+                                    const opt_vec_str &variant_filters) {
+  if (const auto &filters = variant_filters) {
     sqlite3_stmt *stmt;
 
     const string query =
         "INSERT INTO VariantsFilters "
-        "(var_chrom, var_start, var_end, var_filter) "
-        "VALUES (?1,  ?2, ?3, ?4);";
+        "(id_variant, variant_filter) "
+        "VALUES (?1, ?2);";
 
     for (const auto &filter : *filters) {
       sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
 
-      sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-      sqlite3_bind_int(stmt, 2, var_start);
-      sqlite3_bind_int(stmt, 3, var_end);
-      sqlite3_bind_text(stmt, 4, filter.c_str(), -1, SQLITE_TRANSIENT);
+      sqlite3_bind_int(stmt, 1, id_variant);
+      sqlite3_bind_text(stmt, 2, filter.c_str(), -1, SQLITE_TRANSIENT);
 
       finalize(db, stmt);
     }
@@ -215,37 +215,32 @@ int VCFLite::insert_variant_filters(sqlite3 *db, const std::string &var_chrom,
   return SQLITE_OK;
 }
 
-int VCFLite::insert_variant_alleles(sqlite3 *db, const std::string &var_chrom,
-                                    int var_start, int var_end,
-                                    const std::string &var_ref,
-                                    const vec_str &var_alt) {
+int VCFLite::insert_variant_alleles(sqlite3 *db, const int id_variant,
+                                    const string &variant_ref,
+                                    const vec_str &variant_alt) {
   sqlite3_stmt *stmt;
 
   const string query =
       "INSERT INTO VariantsAlleles "
-      "(var_chrom, var_start, var_end, var_allel_id, var_allel_seq) "
-      "VALUES (?1,  ?2, ?3, ?4, ?5);";
+      "(id_variant, variant_allele_id, variant_allele_seq) "
+      "VALUES (?1, ?2, ?3);";
 
-  int allel_id = 0;
+  int allele_id = 0;
 
   sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
 
-  sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-  sqlite3_bind_int(stmt, 2, var_start);
-  sqlite3_bind_int(stmt, 3, var_end);
-  sqlite3_bind_int(stmt, 4, allel_id);
-  sqlite3_bind_text(stmt, 5, var_ref.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int(stmt, 1, id_variant);
+  sqlite3_bind_int(stmt, 2, allele_id);
+  sqlite3_bind_text(stmt, 3, variant_ref.c_str(), -1, SQLITE_TRANSIENT);
 
   finalize(db, stmt);
 
-  for (const auto &alt : var_alt) {
+  for (const auto &alt : variant_alt) {
     sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
 
-    sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 2, var_start);
-    sqlite3_bind_int(stmt, 3, var_end);
-    sqlite3_bind_int(stmt, 4, ++allel_id);
-    sqlite3_bind_text(stmt, 5, alt.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 1, id_variant);
+    sqlite3_bind_int(stmt, 2, ++allele_id);
+    sqlite3_bind_text(stmt, 3, alt.c_str(), -1, SQLITE_TRANSIENT);
 
     finalize(db, stmt);
   }
@@ -253,26 +248,23 @@ int VCFLite::insert_variant_alleles(sqlite3 *db, const std::string &var_chrom,
   return SQLITE_OK;
 }
 
-int VCFLite::insert_variant_info(sqlite3 *db, const std::string &var_chrom,
-                                 int var_start, int var_end,
-                                 const map_str &var_info) {
+int VCFLite::insert_variant_info(sqlite3 *db, const int id_variant,
+                                 const map_str &variant_info) {
   sqlite3_stmt *stmt;
   const string query =
       "INSERT INTO VariantsInfo "
-      "(var_chrom, var_start, var_end, var_key, var_value) "
-      "VALUES (?1,  ?2, ?3, ?4, ?5);";
+      "(id_variant, variant_key, variant_value) "
+      "VALUES (?1, ?2, ?3);";
 
-  for (const auto &[var_key, value] : var_info) {
+  for (const auto &[variant_key, value] : variant_info) {
     sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
 
-    sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 2, var_start);
-    sqlite3_bind_int(stmt, 3, var_end);
-    sqlite3_bind_text(stmt, 4, var_key.c_str(), -1, SQLITE_TRANSIENT);
-    if (auto var_value = value) {
-      sqlite3_bind_text(stmt, 5, var_value->c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 1, id_variant);
+    sqlite3_bind_text(stmt, 2, variant_key.c_str(), -1, SQLITE_TRANSIENT);
+    if (auto variant_value = value) {
+      sqlite3_bind_text(stmt, 3, variant_value->c_str(), -1, SQLITE_TRANSIENT);
     } else
-      sqlite3_bind_null(stmt, 5);
+      sqlite3_bind_null(stmt, 3);
 
     finalize(db, stmt);
   }
@@ -281,16 +273,16 @@ int VCFLite::insert_variant_info(sqlite3 *db, const std::string &var_chrom,
 }
 
 int VCFLite::insert_variant_genotypes(
-    sqlite3 *db, const string &var_chrom, int var_start, int var_end,
+    sqlite3 *db, const int id_variant,
     const vector<HKL::VCF::VCFGenotype> genotypes,
     const vector<string> &samples_reference,
     const vector<int> &samples_picked) {
   sqlite3_stmt *stmt;
   const string query =
       "INSERT INTO Genotypes "
-      "(var_chrom, var_start, var_end, genotype_sample, genotype_gt, "
-      "genotype_dp, genotype_phased_gt, genotype_phased_pos) "
-      "VALUES (?1,  ?2, ?3, ?4, ?5, ?6, ?7, ?8);";
+      "(id_variant, genotype_sample, genotype_gt, "
+      "genotype_dp, genotype_phased_id_variant, genotype_phased_gt) "
+      "VALUES (?1,  ?2, ?3, ?4, ?5, ?6);";
 
   for (const auto &i : samples_picked) {
     sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
@@ -298,56 +290,52 @@ int VCFLite::insert_variant_genotypes(
     const auto genotype_sample = samples_reference.begin() + i;
     const auto genotype_record = *(genotypes.begin() + i);
 
-    sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_int(stmt, 2, var_start);
-    sqlite3_bind_int(stmt, 3, var_end);
-    sqlite3_bind_text(stmt, 4, genotype_sample->c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(stmt, 1, id_variant);
+    sqlite3_bind_text(stmt, 2, genotype_sample->c_str(), -1, SQLITE_TRANSIENT);
 
     if (const auto gt = genotype_record.getGT()) {
-      sqlite3_bind_text(stmt, 5, gt->c_str(), -1, SQLITE_TRANSIENT);
+      sqlite3_bind_text(stmt, 3, gt->c_str(), -1, SQLITE_TRANSIENT);
 
       if (const auto gt = genotype_record.get("DP");
           gt.has_value() && *gt != ".")
-        sqlite3_bind_int(stmt, 6, std::stoi((*gt)->c_str()));
+        sqlite3_bind_int(stmt, 4, std::stoi((*gt)->c_str()));
       else
-        sqlite3_bind_null(stmt, 6);
+        sqlite3_bind_null(stmt, 4);
 
       finalize(db, stmt);
 
       const string query_genotype_alleles =
           "INSERT INTO GenotypesAlleles "
-          "(var_chrom, var_start, var_end, genotype_sample, "
-          "genotype_position, genotype_allele) "
-          "VALUES (?1,  ?2, ?3, ?4, ?5, ?6);";
+          "(id_variant, genotype_sample, genotype_position, variant_allele_id) "
+          "VALUES (?1,  ?2, ?3, ?4);";
 
       for (const auto &allele : genotype_record.getAlleles()) {
         sqlite3_prepare_v2(db, query_genotype_alleles.c_str(), -1, &stmt,
                            nullptr);
 
-        sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-        sqlite3_bind_int(stmt, 2, var_start);
-        sqlite3_bind_int(stmt, 3, var_end);
-        sqlite3_bind_text(stmt, 4, genotype_sample->c_str(), -1,
+        sqlite3_bind_int(stmt, 1, id_variant);
+        sqlite3_bind_text(stmt, 2, genotype_sample->c_str(), -1,
                           SQLITE_TRANSIENT);
-
-        sqlite3_bind_int(stmt, 5, allele.getPosition());
+        sqlite3_bind_int(stmt, 3, allele.getPosition());
 
         if (const auto &gt = allele.getAllele())
-          sqlite3_bind_int(stmt, 6, *gt);
+          sqlite3_bind_int(stmt, 4, *gt);
         else
-          sqlite3_bind_null(stmt, 6);
+          sqlite3_bind_null(stmt, 4);
 
         finalize(db, stmt);
       }
     } else {
-      sqlite3_bind_null(stmt, 5);
-      sqlite3_bind_null(stmt, 6);
+      sqlite3_bind_null(stmt, 3);
+      sqlite3_bind_null(stmt, 4);
     }
 
     if (genotype_record.isPhased()) {
       sqlite3_bind_text(stmt, 7, genotype_record.getPhasedGT()->c_str(), -1,
                         SQLITE_TRANSIENT);
-      sqlite3_bind_int(stmt, 8, (*genotype_record.getPhasedPosition()));
+      auto phased_id_variant = Select::phased_variant_id(
+          db, id_variant, *genotype_record.getPhasedPosition());
+      sqlite3_bind_int(stmt, 8, phased_id_variant);
     } else {
       sqlite3_bind_null(stmt, 7);
       sqlite3_bind_null(stmt, 8);
@@ -355,27 +343,24 @@ int VCFLite::insert_variant_genotypes(
 
     const string query_genotypeinfo =
         "INSERT INTO GenotypesInfo "
-        "(var_chrom, var_start, var_end, genotype_sample, genotype_key, "
-        "genotype_value) "
-        "VALUES (?1,  ?2, ?3, ?4, ?5, ?6);";
+        "(id_variant, genotype_sample, genotype_key, genotype_value) "
+        "VALUES (?1,  ?2, ?3, ?4);";
 
     for (const auto &[key, value] : genotype_record) {
       sqlite3_prepare_v2(db, query_genotypeinfo.c_str(), -1, &stmt, nullptr);
 
       const auto genotype_sample = samples_reference.begin() + i;
 
-      sqlite3_bind_text(stmt, 1, var_chrom.c_str(), -1, SQLITE_TRANSIENT);
-      sqlite3_bind_int(stmt, 2, var_start);
-      sqlite3_bind_int(stmt, 3, var_end);
-      sqlite3_bind_text(stmt, 4, genotype_sample->c_str(), -1,
+      sqlite3_bind_int(stmt, 1, id_variant);
+      sqlite3_bind_text(stmt, 2, genotype_sample->c_str(), -1,
                         SQLITE_TRANSIENT);
-      sqlite3_bind_text(stmt, 5, key.c_str(), -1, SQLITE_TRANSIENT);
+      sqlite3_bind_text(stmt, 3, key.c_str(), -1, SQLITE_TRANSIENT);
 
       if (const auto genotype_value = value)
-        sqlite3_bind_text(stmt, 6, genotype_value->c_str(), -1,
+        sqlite3_bind_text(stmt, 4, genotype_value->c_str(), -1,
                           SQLITE_TRANSIENT);
       else
-        sqlite3_bind_null(stmt, 6);
+        sqlite3_bind_null(stmt, 4);
 
       finalize(db, stmt);
     }
@@ -384,30 +369,26 @@ int VCFLite::insert_variant_genotypes(
   return SQLITE_OK;
 }
 
-int VCFLite::insert_record(sqlite3 *db, const HKL::VCF::VCFRecord &record,
+int VCFLite::insert_record(sqlite3 *db, const int id_variant,
+                           const HKL::VCF::VCFRecord &record,
                            const vector<string> &samples_reference,
                            const vector<int> &samples_picked) {
-  insert_variant(db, record.getChrom(), record.getStart(), record.getEnd(),
-                 record.getLength(), record.getRef(), record.getQual(),
-                 record.getPass(), record.getAlleles());
+  insert_variant(db, id_variant, record.getChrom(), record.getStart(),
+                 record.getEnd(), record.getLength(), record.getRef(),
+                 record.getQual(), record.getPass(), record.getAlleles());
 
   if (auto ids = record.getIDs(); !ids.empty())
-    insert_variant_ids(db, record.getChrom(), record.getStart(),
-                       record.getEnd(), ids);
+    insert_variant_ids(db, id_variant, ids);
 
-  insert_variant_filters(db, record.getChrom(), record.getStart(),
-                         record.getEnd(), record.getFilters());
+  insert_variant_filters(db, id_variant, record.getFilters());
 
-  insert_variant_alleles(db, record.getChrom(), record.getStart(),
-                         record.getEnd(), record.getRef(), record.getAlt());
+  insert_variant_alleles(db, id_variant, record.getRef(), record.getAlt());
 
-  insert_variant_info(db, record.getChrom(), record.getStart(), record.getEnd(),
-                      record.getInfo());
+  insert_variant_info(db, id_variant, record.getInfo());
 
   if (auto var_genotypes = record.getGenotypes();
       !var_genotypes.empty() && !samples_picked.empty())
-    insert_variant_genotypes(db, record.getChrom(), record.getStart(),
-                             record.getEnd(), var_genotypes, samples_reference,
+    insert_variant_genotypes(db, id_variant, var_genotypes, samples_reference,
                              samples_picked);
 
   return SQLITE_OK;

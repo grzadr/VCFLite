@@ -1,5 +1,6 @@
 #include <vcflite/connect.hpp>
 #include <vcflite/populate.hpp>
+#include <vcflite/select.hpp>
 
 int VCFLite::Connector::open(const std::__cxx11::string &db_path, bool create) {
   //    sqlite3* db = sqlite.get();
@@ -23,13 +24,15 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
 
   transaction(db);
 
+  auto id_variant = Select::max_variant_id(db);
+
   while (auto ele = reader()) {
     if (std::holds_alternative<VCF::VCFComment>(*ele))
       insert_comment(db, std::get<VCF::VCFComment>(*ele));
     else if (std::holds_alternative<VCF::VCFHeader>(*ele)) {
       if (samples.has_value()) reader.provideSamples(*samples);
     } else {
-      insert_record(db, std::get<VCF::VCFRecord>(*ele),
+      insert_record(db, ++id_variant, std::get<VCF::VCFRecord>(*ele),
                     reader.getSamplesReference(), reader.getSamplesPicked());
       //      break;
     }

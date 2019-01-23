@@ -24,15 +24,12 @@ int main(int argc, char *argv[]) {
   VCFLite::Connector db{*args.getArg("db_path").getValue(),
                         args.getArg("create").isSet()};
 
-  if (const auto &vcf_file = args.getArg("vcf_file").getValue()) {
+  if (const auto &vcf_file = args.getArg("vcf_file").getValue())
     db.parseVCF(*vcf_file, args.getArg("samples").getValue());
-  }
 
   db.check();
 
-  if (args.getArg("optimize").isSet()) {
-    db.optimize();
-  }
+  if (args.getArg("optimize").isSet()) db.optimize();
 
   return 0;
 }

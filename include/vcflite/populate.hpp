@@ -35,30 +35,32 @@ int insert_comment_simple(sqlite3* db, const string& field,
 
 int insert_comment(sqlite3* db, const HKL::VCF::VCFComment& comment);
 
-int insert_variant(sqlite3* db, const string& var_chrom, int var_start,
-                   int var_end, int var_length, const string& var_ref,
-                   opt_double var_qual, opt_int var_pass, int var_alleles);
+int insert_variant(sqlite3* db, const int id_variant,
+                   const string& variant_chrom, int variant_start,
+                   int variant_end, int variant_length,
+                   const string& variant_ref, opt_double variant_qual,
+                   opt_int variant_pass, int variant_alleles);
 
-int insert_variant_ids(sqlite3* db, const string& var_chrom, int var_start,
-                       int var_end, const vector<string> ids);
+int insert_variant_ids(sqlite3* db, const int id_variant,
+                       const vector<string> ids);
 
-int insert_variant_filters(sqlite3* db, const string& var_chrom, int var_start,
-                           int var_end, const opt_vec_str& var_filters);
+int insert_variant_filters(sqlite3* db, const int id_variant,
+                           const opt_vec_str& variant_filters);
 
-int insert_variant_alleles(sqlite3* db, const string& var_chrom, int var_start,
-                           int var_end, const string& var_ref,
-                           const vec_str& var_alt);
+int insert_variant_alleles(sqlite3* db, const int id_variant,
+                           const string& variant_ref,
+                           const vec_str& variant_alt);
 
-int insert_variant_info(sqlite3* db, const string& var_chrom, int var_start,
-                        int var_end, const map_str& var_info);
+int insert_variant_info(sqlite3* db, const int id_variant,
+                        const map_str& variant_info);
 
-int insert_variant_genotypes(sqlite3* db, const string& var_chrom,
-                             int var_start, int var_end,
+int insert_variant_genotypes(sqlite3* db, const int id_variant,
                              const vector<HKL::VCF::VCFGenotype> genotypes,
                              const vector<string>& samples_reference,
                              const vector<int>& samples_picked);
 
-int insert_record(sqlite3* db, const HKL::VCF::VCFRecord& record,
+int insert_record(sqlite3* db, const int new_id,
+                  const HKL::VCF::VCFRecord& record,
                   const vector<string>& samples_reference,
                   const vector<int>& samples_picked);
 }  // namespace VCFLite

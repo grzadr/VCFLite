@@ -63,7 +63,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "variant_ref TEXT NOT NULL COLLATE NOCASE,"
       "variant_qual REAL DEFAULT NULL,"
       "variant_pass INTEGER DEFAULT NULL,"
-      "variant_alleles INTEGER DEFAULT NULL,"
+      "variant_alleles INTEGER DEFAULT NULL"
       ");",
 
       "CREATE INDEX idxVariantsPos "
@@ -89,7 +89,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "CREATE TABLE VariantsFilters ("
       "id_variant INTEGER NOT NULL,"
       "variant_filter TEXT NOT NULL COLLATE NOCASE,"
-      "PRIMARY KEY(variant_filter, variant_id),"
+      "PRIMARY KEY(variant_filter, id_variant),"
       ""
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
@@ -97,11 +97,11 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "CREATE INDEX idxVariantsFiltersID ON VariantsFilters(id_variant);",
 
       "CREATE TABLE VariantsAlleles ("
-      "id_variant INTEGER PRIMARY KEY NOT NULL,"
+      "id_variant INTEGER NOT NULL,"
       "variant_allele_id INTEGER NOT NULL,"
       "variant_allele_seq TEXT NOT NULL COLLATE NOCASE,"
       ""
-      "PRIMARY KEY(id_variant, variant_allel_id),"
+      "PRIMARY KEY(id_variant, variant_allele_id),"
       ""
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
@@ -152,8 +152,8 @@ int VCFLite::Creator::init(sqlite3 *db) {
       ""
       "FOREIGN KEY(id_variant, genotype_sample) "
       "REFERENCES Genotypes(id_variant, genotype_sample),"
-      "FOREIGN KEY(id_variant, variant_allel_id) "
-      "REFERENCES VariantsAlleles(id_variant, variant_allel_id)"
+      "FOREIGN KEY(id_variant, variant_allele_id) "
+      "REFERENCES VariantsAlleles(id_variant, variant_allele_id)"
       ""
       ");",
 
