@@ -66,127 +66,114 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "variant_alleles INTEGER DEFAULT NULL,"
       ");",
 
+      "CREATE INDEX idxVariantsPos "
+      "ON Variants(variant_chrom, variant_start, variant_end);",
+      "CREATE INDEX idxVariantsLength "
+      "ON Variants(variant_length);",
+      "CREATE INDEX idxVariantsQual "
+      "ON Variants(variant_qual);",
+      "CREATE INDEX idxVariantsPass "
+      "ON Variants(variant_pass);",
+      "CREATE INDEX idxVariantsAlleles "
+      "ON Variants(variant_alleles);",
+
       "CREATE TABLE VariantsIDs ("
-      "id_variant INTEGER PRIMARY KEY NOT NULL,"
-      //      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
-      //      "var_start INTEGER NOT NULL,"
-      //      "var_end INTEGER NOT NULL,"
-      "var_id TEXT NOT NULL COLLATE NOCASE,"
+      "id_variant INTEGER NOT NULL,"
+      "variant_idx TEXT NOT NULL COLLATE NOCASE,"
+      ""
+      "PRIMARY KEY(variant_idx, id_variant),"
       ""
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
-      ""
       ");",
 
       "CREATE TABLE VariantsFilters ("
       "id_variant INTEGER NOT NULL,"
-      //      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
-      //      "var_start INTEGER NOT NULL,"
-      //      "var_end INTEGER NOT NULL,"
-      "var_filter TEXT NOT NULL COLLATE NOCASE,"
-      "PRIMARY KEY(var_filter, var_id),"
+      "variant_filter TEXT NOT NULL COLLATE NOCASE,"
+      "PRIMARY KEY(variant_filter, variant_id),"
       ""
-      //      "FOREIGN KEY(var_chrom, var_start, var_end) "
-      //      "REFERENCES Variants(var_chrom, var_start, var_end)"
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
-      ""
       ");",
+
+      "CREATE INDEX idxVariantsFiltersID ON VariantsFilters(id_variant);",
 
       "CREATE TABLE VariantsAlleles ("
       "id_variant INTEGER PRIMARY KEY NOT NULL,"
-      //      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
-      //      "var_start INTEGER NOT NULL,"
-      //      "var_end INTEGER NOT NULL,"
-      "var_allel_id INTEGER NOT NULL,"
-      "var_allel_seq TEXT NOT NULL COLLATE NOCASE,"
-      "PRIMARY KEY(var_chrom, var_start, var_end, var_allel_seq),"
+      "variant_allele_id INTEGER NOT NULL,"
+      "variant_allele_seq TEXT NOT NULL COLLATE NOCASE,"
       ""
-      "FOREIGN KEY(var_chrom, var_start, var_end) "
-      "REFERENCES Variants(var_chrom, var_start, var_end)"
+      "PRIMARY KEY(id_variant, variant_allel_id),"
       ""
+      "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
-      "CREATE UNIQUE INDEX idxVariantsAlleles"
-      " ON VariantsAlleles(var_chrom, var_start, var_end, var_allel_seq);",
-
       "CREATE TABLE VariantsInfo ("
-      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
-      "var_start INTEGER NOT NULL,"
-      "var_end INTEGER NOT NULL,"
-      "var_key TEXT NOT NULL COLLATE NOCASE,"
-      "var_value TEXT DEFAULT NULL COLLATE NOCASE,"
-      "PRIMARY KEY(var_key, var_chrom, var_start, var_end),"
+      "id_variant INTEGER NOT NULL,"
+      "variant_key TEXT NOT NULL COLLATE NOCASE,"
+      "variant_value TEXT DEFAULT NULL COLLATE NOCASE,"
       ""
-      "FOREIGN KEY(var_chrom, var_start, var_end) "
-      "REFERENCES Variants(var_chrom, var_start, var_end)"
+      "PRIMARY KEY(variant_key, id_variant),"
       ""
+      "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
       "CREATE UNIQUE INDEX idxVariantsInfo"
-      " ON VariantsInfo(var_chrom, var_start, var_end, var_key);",
+      " ON VariantsInfo(variant_value, variant_key, id_variant);",
+      "CREATE INDEX idxVariantsInfoID"
+      " ON VariantsInfo(id_variant, variant_key);",
 
       "CREATE TABLE Genotypes ("
-      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
-      "var_start INTEGER NOT NULL,"
-      "var_end INTEGER NOT NULL,"
+      "id_variant INTEGER NOT NULL,"
       "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
       "genotype_gt TEXT DEFAULT NULL COLLATE NOCASE,"
       "genotype_dp INTEGER DEFAULT NULL COLLATE NOCASE,"
-      "genotype_phased_pos INTEGER DEFAULT NULL,"
+      "genotype_phased_id_variant INTEGER DEFAULT NULL,"
       "genotype_phased_gt TEXT DEFAULT NULL COLLATE NOCASE,"
       ""
-      "PRIMARY KEY(genotype_sample, var_chrom, var_start, var_end), "
+      "PRIMARY KEY(genotype_sample, id_variant),"
       ""
-      "FOREIGN KEY(var_chrom, var_start, var_end) "
-      "REFERENCES Variants(var_chrom, var_start, var_end)"
-      ""
-      "FOREIGN KEY(var_chrom, genotype_phased_pos) "
-      "REFERENCES Genotypes(var_chrom, var_start)"
+      "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant),"
+      "FOREIGN KEY(genotype_phased_id_variant) REFERENCES Genotypes(id_variant)"
       ");",
 
-      "CREATE UNIQUE INDEX idxGenotypes"
-      " ON Genotypes(var_chrom, var_start, var_end, genotype_sample);",
+      "CREATE UNIQUE INDEX idxGenotypesID"
+      " ON Genotypes(id_variant, genotype_sample);",
       "CREATE INDEX idxGenotypesDP"
       " ON Genotypes(genotype_dp);",
       "CREATE INDEX idxGenotypesPhased"
-      " ON Genotypes(var_chrom, genotype_phased_pos);",
+      " ON Genotypes(genotype_phased_id_variant);",
 
       "CREATE TABLE GenotypesAlleles ("
-      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
-      "var_start INTEGER NOT NULL,"
-      "var_end INTEGER NOT NULL,"
+      "id_variant INTEGER NOT NULL,"
       "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
       "genotype_position INTEGER NOT NULL COLLATE NOCASE,"
-      "genotype_allele INTEGER NOT NULL COLLATE NOCASE,"
+      "variant_allele_id INTEGER NOT NULL COLLATE NOCASE,"
       ""
-      "PRIMARY KEY(genotype_sample, genotype_position, var_chrom, "
-      "var_start, var_end), "
+      "PRIMARY KEY(id_variant, genotype_sample, genotype_position), "
       ""
-      "FOREIGN KEY(genotype_sample, var_chrom, var_start, var_end) "
-      "REFERENCES Genotypes(genotype_sample, var_chrom, var_start, var_end)"
+      "FOREIGN KEY(id_variant, genotype_sample) "
+      "REFERENCES Genotypes(id_variant, genotype_sample),"
+      "FOREIGN KEY(id_variant, variant_allel_id) "
+      "REFERENCES VariantsAlleles(id_variant, variant_allel_id)"
+      ""
       ");",
 
       "CREATE UNIQUE INDEX idxGenotypesAllelesID"
-      " ON GenotypesAlleles(var_chrom, var_start, var_end, genotype_sample, "
-      "genotype_position);",
+      " ON GenotypesAlleles(id_variant, genotype_position, genotype_sample);",
 
       "CREATE TABLE GenotypesInfo ("
-      "var_chrom TEXT NOT NULL COLLATE NOCASE,"
-      "var_start INTEGER NOT NULL,"
-      "var_end INTEGER NOT NULL,"
+      "id_variant INTEGER NOT NULL,"
       "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
       "genotype_key TEXT NOT NULL COLLATE NOCASE,"
       "genotype_value TEXT DEFAULT NULL COLLATE NOCASE,"
       ""
-      "PRIMARY KEY(genotype_key, genotype_sample, var_chrom, var_start, "
-      "var_end), "
+      "PRIMARY KEY(id_variant, genotype_key, genotype_sample), "
       ""
-      "FOREIGN KEY(genotype_sample, var_chrom, var_start, var_end) "
-      "REFERENCES Genotypes(genotype_sample, var_chrom, var_start, var_end)"
+      "FOREIGN KEY(id_variant, genotype_sample) "
+      "REFERENCES Genotypes(id_variant, genotype_sample)"
       ");",
 
       "CREATE UNIQUE INDEX idxGenotypesInfo"
-      " ON GenotypesInfo(var_chrom, var_start, var_end, genotype_sample, "
-      "genotype_key);",
+      " ON GenotypesInfo(genotype_key, genotype_value);",
 
   };
 
