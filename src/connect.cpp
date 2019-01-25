@@ -46,12 +46,12 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
       std::clog << "Last inserted id: " << id_variant << "\n";
 
     if (std::holds_alternative<VCF::VCFComment>(*ele))
-      insert_comment(db, std::get<VCF::VCFComment>(*ele));
+      insert_comment(db, vcf_file, std::get<VCF::VCFComment>(*ele));
     else if (std::holds_alternative<VCF::VCFHeader>(*ele)) {
       if (samples.has_value())
         reader.provideSamples(*samples);
     } else
-      insert_record(db, ++id_variant, std::get<VCF::VCFRecord>(*ele),
+      insert_record(db, vcf_file, ++id_variant, std::get<VCF::VCFRecord>(*ele),
                     reader.getSamplesReference(), reader.getSamplesPicked());
   }
 

@@ -5,16 +5,16 @@
 #include <vcflite/query.hpp>
 #include <vcflite/select.hpp>
 
-int VCFLite::insert_meta(sqlite3 *db, const string &field, const string &id,
-                         opt_str description, opt_str type, opt_str number,
-                         opt_str source, opt_str version) {
+int VCFLite::insert_meta(sqlite3 *db, const string &file, const string &field,
+                         const string &id, opt_str description, opt_str type,
+                         opt_str number, opt_str source, opt_str version) {
   sqlite3_stmt *stmt;
 
   sqlite3_prepare_v2(db,
                      "INSERT INTO MetaInfo "
                      "(meta_field, meta_id, meta_description, meta_type, "
-                     "meta_number, meta_source, meta_version) "
-                     "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7);",
+                     "meta_number, meta_source, meta_version, meta_file) "
+                     "VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8);",
                      -1, &stmt, nullptr);
 
   sqlite3_bind_text(stmt, 1, field.c_str(), -1, SQLITE_TRANSIENT);
@@ -45,33 +45,34 @@ int VCFLite::insert_meta(sqlite3 *db, const string &field, const string &id,
   else
     sqlite3_bind_null(stmt, 7);
 
-  if (sqlite3_step(stmt) != SQLITE_DONE)
-    panic(db, string(sqlite3_expanded_sql(stmt)));
+  sqlite3_bind_text(stmt, 8, file.c_str(), -1, SQLITE_TRANSIENT);
 
-  return sqlite3_finalize(stmt);
+  return finalize(db, stmt);
 }
 
-int VCFLite::insert_meta_extra(sqlite3 *db, const std::string &field,
-                               const std::string &id, std::string key,
-                               std::string value) {
+int VCFLite::insert_meta_extra(sqlite3 *db, const string &file,
+                               const string &field, const string &id,
+                               string key, string value) {
   sqlite3_stmt *stmt;
 
-  sqlite3_prepare_v2(db,
-                     "INSERT INTO MetaInfoExtra "
-                     "(meta_field, meta_id, meta_extra_key, meta_extra_value) "
-                     "VALUES (?1, ?2, ?3, ?4);",
-                     -1, &stmt, nullptr);
+  sqlite3_prepare_v2(
+      db,
+      "INSERT INTO MetaInfoExtra "
+      "(meta_field, meta_id, meta_extra_key, meta_extra_value, meta_file) "
+      "VALUES (?1, ?2, ?3, ?4, ?5);",
+      -1, &stmt, nullptr);
 
   sqlite3_bind_text(stmt, 1, field.c_str(), -1, SQLITE_TRANSIENT);
   sqlite3_bind_text(stmt, 2, id.c_str(), -1, SQLITE_TRANSIENT);
   sqlite3_bind_text(stmt, 3, key.c_str(), -1, SQLITE_TRANSIENT);
   sqlite3_bind_text(stmt, 4, value.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 5, file.c_str(), -1, SQLITE_TRANSIENT);
 
   return finalize(db, stmt);
 }
 
-int VCFLite::insert_comment_proper(sqlite3 *db, const string &field,
-                                   const string &value) {
+int VCFLite::insert_comment_proper(sqlite3 *db, const std::string &file,
+                                   const string &field, const string &value) {
   map_str data{value, ',', '=', '"'};
 
   if (const auto id = *data.get("ID")) {
@@ -100,10 +101,11 @@ int VCFLite::insert_comment_proper(sqlite3 *db, const string &field,
       else if (key == "Version")
         version = content;
       else
-        insert_meta_extra(db, field, *id, key, *content);
+        insert_meta_extra(db, file, field, *id, key, *content);
     }
 
-    insert_meta(db, field, *id, description, type, number, source, version);
+    insert_meta(db, file, field, *id, description, type, number, source,
+                version);
 
   } else
     throw runerror{"Comment missing 'ID' field\n" + field + "=<" + value + ">"};
@@ -111,16 +113,18 @@ int VCFLite::insert_comment_proper(sqlite3 *db, const string &field,
   return 0;
 }
 
-int VCFLite::insert_comment_simple(sqlite3 *db, const string &field,
-                                   const string &value) {
+int VCFLite::insert_comment_simple(sqlite3 *db, const string &file,
+                                   const string &field, const string &value) {
   sqlite3_stmt *stmt;
 
-  sqlite3_prepare_v2(
-      db, "INSERT INTO MetaInfo (meta_field, meta_id) values (?1, ?2);", -1,
-      &stmt, nullptr);
+  sqlite3_prepare_v2(db,
+                     "INSERT INTO MetaInfo (meta_field, meta_id, meta_file) "
+                     "VALUES (?1, ?2, ?3);",
+                     -1, &stmt, nullptr);
 
   sqlite3_bind_text(stmt, 1, field.c_str(), -1, SQLITE_TRANSIENT);
   sqlite3_bind_text(stmt, 2, value.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_text(stmt, 3, file.c_str(), -1, SQLITE_TRANSIENT);
 
   if (sqlite3_step(stmt) != SQLITE_DONE)
     panic(db, string(sqlite3_expanded_sql(stmt)));
@@ -128,27 +132,30 @@ int VCFLite::insert_comment_simple(sqlite3 *db, const string &field,
   return sqlite3_finalize(stmt);
 }
 
-int VCFLite::insert_comment(sqlite3 *db, const HKL::VCF::VCFComment &comment) {
+int VCFLite::insert_comment(sqlite3 *db, const string &file,
+                            const HKL::VCF::VCFComment &comment) {
   if (comment.isProper())
-    return insert_comment_proper(db, comment.getField(), comment.getValue());
+    return insert_comment_proper(db, file, comment.getField(),
+                                 comment.getValue());
   else
-    return insert_comment_simple(db, comment.getField(), comment.getValue());
+    return insert_comment_simple(db, file, comment.getField(),
+                                 comment.getValue());
 }
 
-int VCFLite::insert_variant(sqlite3 *db, const int id_variant,
-                            const string &variant_chrom, int variant_start,
-                            int variant_end, int variant_length,
-                            const string &variant_ref, opt_double variant_qual,
-                            opt_int variant_pass, int variant_alleles) {
+int VCFLite::insert_variant(sqlite3 *db, const string &file,
+                            const int id_variant, const string &variant_chrom,
+                            int variant_start, int variant_end,
+                            int variant_length, const string &variant_ref,
+                            opt_double variant_qual, opt_int variant_pass,
+                            int variant_alleles) {
   sqlite3_stmt *stmt;
 
   sqlite3_prepare_v2(db,
                      "INSERT INTO Variants "
-                     "(id_variant, variant_chrom, variant_start,"
-                     "variant_end, variant_length, variant_ref,"
-                     "variant_qual, variant_pass, "
-                     "variant_alleles) "
-                     "VALUES (?1,  ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9);",
+                     "(id_variant, variant_chrom, variant_start, variant_end, "
+                     "variant_length, variant_ref, variant_qual, variant_pass, "
+                     "variant_alleles, variant_file) "
+                     "VALUES (?1,  ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);",
                      -1, &stmt, nullptr);
 
   //  int index = 0;
@@ -171,6 +178,7 @@ int VCFLite::insert_variant(sqlite3 *db, const int id_variant,
     sqlite3_bind_null(stmt, 8);
 
   sqlite3_bind_int(stmt, 9, variant_alleles);
+  sqlite3_bind_text(stmt, 10, file.c_str(), -1, SQLITE_TRANSIENT);
 
   return finalize(db, stmt);
 }
@@ -394,11 +402,12 @@ int VCFLite::insert_variant_genotypes(
   return SQLITE_OK;
 }
 
-int VCFLite::insert_record(sqlite3 *db, const int id_variant,
+int VCFLite::insert_record(sqlite3 *db, const string &file,
+                           const int id_variant,
                            const HKL::VCF::VCFRecord &record,
                            const vector<string> &samples_reference,
                            const vector<int> &samples_picked) {
-  insert_variant(db, id_variant, record.getChrom(), record.getStart(),
+  insert_variant(db, file, id_variant, record.getChrom(), record.getStart(),
                  record.getEnd(), record.getLength(), record.getRef(),
                  record.getQual(), record.getPass(), record.getAlleles());
 

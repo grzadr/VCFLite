@@ -1,8 +1,14 @@
+#include <iostream>
+
 #include <vcflite/create.hpp>
 #include <vcflite/query.hpp>
 
 int VCFLite::Creator::init(sqlite3 *db) {
+  std::clog << "[LOG] Initializing new database\n";
+
   transaction(db);
+
+  std::clog << "[LOG] Dropping old tables\n";
 
   vector<string> drop_queries{
       "DROP TABLE IF EXISTS MetaInfo;",
@@ -20,12 +26,19 @@ int VCFLite::Creator::init(sqlite3 *db) {
 
       "DROP TABLE IF EXISTS Genotypes;",
       "DROP TABLE IF EXISTS GenotypesInfo;",
+      "DROP TABLE IF EXISTS GenotypesAlleles;",
+      "DROP TABLE IF EXISTS GenotypesPhase;",
   };
 
   exec(db, drop_queries.begin(), drop_queries.end());
 
+  std::clog << "[LOG] Completed\n";
+
+  std::clog << "[LOG] Creating new tables and indexes\n";
+
   vector<string> create_queries{
       "CREATE TABLE MetaInfo("
+      "meta_file TEXT NOT NULL COLLATE NOCASE,"
       "meta_field TEXT NOT NULL COLLATE NOCASE,"
       "meta_id TEXT DEFAULT NULL COLLATE NOCASE,"
       "meta_description TEXT DEFAULT NULL COLLATE NOCASE,"
@@ -34,21 +47,22 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "meta_source TEXT DEFAULT NULL COLLATE NOCASE,"
       "meta_version TEXT DEFAULT NULL COLLATE NOCASE,"
       ""
-      "PRIMARY KEY(meta_field, meta_id)"
+      "PRIMARY KEY(meta_file, meta_field, meta_id)"
       ");",
 
       "CREATE INDEX idxMetaInfo_id ON MetaInfo(meta_id);",
 
       "CREATE TABLE MetaInfoExtra("
+      "meta_file TEXT NOT NULL COLLATE NOCASE,"
       "meta_field TEXT NOT NULL COLLATE NOCASE,"
       "meta_id TEXT DEFAULT NULL COLLATE NOCASE,"
       "meta_extra_key TEXT NOT NULL COLLATE NOCASE,"
       "meta_extra_value TEXT NOT NULL COLLATE NOCASE,"
       ""
-      "PRIMARY KEY(meta_extra_key, meta_field, meta_id),"
+      "PRIMARY KEY(meta_extra_key, meta_file, meta_field, meta_id),"
       ""
-      "FOREIGN KEY(meta_field, meta_id) "
-      "REFERENCES MetaInfo(meta_field, meta_id)"
+      "FOREIGN KEY(meta_file, meta_field, meta_id) "
+      "REFERENCES MetaInfo(meta_file, meta_field, meta_id)"
       ""
       ");",
 
@@ -56,6 +70,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
 
       "CREATE TABLE Variants ("
       "id_variant INTEGER PRIMARY KEY NOT NULL,"
+      "variant_file TEXT NOT NULL COLLATE NOCASE,"
       "variant_chrom TEXT NOT NULL COLLATE NOCASE,"
       "variant_start INTEGER NOT NULL,"
       "variant_end INTEGER NOT NULL,"
@@ -180,7 +195,11 @@ int VCFLite::Creator::init(sqlite3 *db) {
 
   exec(db, create_queries.begin(), create_queries.end());
 
+  std::clog << "[LOG] Completed\n";
+
   commit(db);
+
+  std::clog << "[LOG] Commiting changes\n";
 
   return 0;
 }
