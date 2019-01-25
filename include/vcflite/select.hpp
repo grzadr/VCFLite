@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -33,6 +34,8 @@ inline int max_variant_id(sqlite3 *db) {
 inline int phased_variant_id(sqlite3 *db, const int id_variant,
                              const int phased_pos) {
   sqlite3_stmt *stmt;
+
+  std::cerr << id_variant << " " << phased_pos << "\n";
 
   sqlite3_prepare_v2(db,
                      "SELECT id_variant "

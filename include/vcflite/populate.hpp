@@ -54,6 +54,13 @@ int insert_variant_alleles(sqlite3* db, const int id_variant,
 int insert_variant_info(sqlite3* db, const int id_variant,
                         const map_str& variant_info);
 
+int insert_genotype(sqlite3* db, const int id_variant, const string& sample,
+                    const opt_str& gt, const opt_int dp);
+
+int insert_genotype_phase(sqlite3* db, const int id_variant,
+                          const string& sample, const opt_str phased_id,
+                          const opt_str& phased_gt);
+
 int insert_variant_genotypes(sqlite3* db, const int id_variant,
                              const vector<HKL::VCF::VCFGenotype> genotypes,
                              const vector<string>& samples_reference,

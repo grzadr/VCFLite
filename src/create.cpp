@@ -116,31 +116,22 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
-      "CREATE UNIQUE INDEX idxVariantsInfo"
-      " ON VariantsInfo(variant_value, variant_key, id_variant);",
-      "CREATE INDEX idxVariantsInfoID"
-      " ON VariantsInfo(id_variant, variant_key);",
+      "CREATE INDEX idxVariantsInfo"
+      " ON VariantsInfo(variant_value, variant_key);",
 
       "CREATE TABLE Genotypes ("
       "id_variant INTEGER NOT NULL,"
       "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
       "genotype_gt TEXT DEFAULT NULL COLLATE NOCASE,"
       "genotype_dp INTEGER DEFAULT NULL COLLATE NOCASE,"
-      "genotype_phased_id_variant INTEGER DEFAULT NULL,"
-      "genotype_phased_gt TEXT DEFAULT NULL COLLATE NOCASE,"
       ""
       "PRIMARY KEY(genotype_sample, id_variant),"
       ""
-      "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant),"
-      "FOREIGN KEY(genotype_phased_id_variant) REFERENCES Genotypes(id_variant)"
+      "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
-      "CREATE UNIQUE INDEX idxGenotypesID"
-      " ON Genotypes(id_variant, genotype_sample);",
-      "CREATE INDEX idxGenotypesDP"
-      " ON Genotypes(genotype_dp);",
-      "CREATE INDEX idxGenotypesPhased"
-      " ON Genotypes(genotype_phased_id_variant);",
+      "CREATE INDEX idxGenotypesDP ON Genotypes(genotype_dp);",
+      "CREATE INDEX idxGenotypesID ON Genotypes(id_variant);",
 
       "CREATE TABLE GenotypesAlleles ("
       "id_variant INTEGER NOT NULL,"
@@ -157,8 +148,18 @@ int VCFLite::Creator::init(sqlite3 *db) {
       ""
       ");",
 
-      "CREATE UNIQUE INDEX idxGenotypesAllelesID"
-      " ON GenotypesAlleles(id_variant, genotype_position, genotype_sample);",
+      "CREATE TABLE GenotypesPhase ("
+      "id_variant INTEGER NOT NULL,"
+      "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
+      "genotype_phased_id TEXT DEFAULT NULL COLLATE NOCASE,"
+      "genotype_phased_gt TEXT DEFAULT NULL COLLATE NOCASE,"
+      ""
+      "PRIMARY KEY(id_variant, genotype_sample, genotype_phased_id), "
+      ""
+      "FOREIGN KEY(id_variant, genotype_sample) "
+      "REFERENCES Genotypes(id_variant, genotype_sample)"
+      ""
+      ");",
 
       "CREATE TABLE GenotypesInfo ("
       "id_variant INTEGER NOT NULL,"
@@ -172,7 +173,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "REFERENCES Genotypes(id_variant, genotype_sample)"
       ");",
 
-      "CREATE UNIQUE INDEX idxGenotypesInfo"
+      "CREATE INDEX idxGenotypesInfo"
       " ON GenotypesInfo(genotype_key, genotype_value);",
 
   };

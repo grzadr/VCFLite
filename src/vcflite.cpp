@@ -27,9 +27,12 @@ int main(int argc, char *argv[]) {
   if (const auto &vcf_file = args.getArg("vcf_file").getValue())
     db.parseVCF(*vcf_file, args.getArg("samples").getValue());
 
+  std::clog << "[LOG] Checking database\n";
+
   db.check();
 
-  if (args.getArg("optimize").isSet()) db.optimize();
+  if (args.getArg("optimize").isSet())
+    db.optimize();
 
   return 0;
 }
