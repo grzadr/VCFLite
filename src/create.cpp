@@ -50,8 +50,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "PRIMARY KEY(meta_file, meta_field, meta_id)"
       ");",
 
-      "CREATE INDEX idxMetaInfo_id ON MetaInfo(meta_id);",
-
       "CREATE TABLE MetaInfoExtra("
       "meta_file TEXT NOT NULL COLLATE NOCASE,"
       "meta_field TEXT NOT NULL COLLATE NOCASE,"
@@ -65,8 +63,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "REFERENCES MetaInfo(meta_file, meta_field, meta_id)"
       ""
       ");",
-
-      "CREATE INDEX idxMetaInfoExtra_id ON MetaInfo(meta_field, meta_id);",
 
       "CREATE TABLE Variants ("
       "id_variant INTEGER PRIMARY KEY NOT NULL,"
@@ -83,10 +79,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
 
       "CREATE INDEX idxVariantsPos "
       "ON Variants(variant_chrom, variant_start, variant_end);",
-      "CREATE INDEX idxVariantsLength "
-      "ON Variants(variant_length);",
-      "CREATE INDEX idxVariantsQual "
-      "ON Variants(variant_qual);",
       "CREATE INDEX idxVariantsPass "
       "ON Variants(variant_pass);",
       "CREATE INDEX idxVariantsAlleles "
@@ -109,8 +101,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
-      "CREATE INDEX idxVariantsFiltersID ON VariantsFilters(id_variant);",
-
       "CREATE TABLE VariantsAlleles ("
       "id_variant INTEGER NOT NULL,"
       "variant_allele_id INTEGER NOT NULL,"
@@ -132,7 +122,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
       ");",
 
       "CREATE INDEX idxVariantsInfo"
-      " ON VariantsInfo(variant_value, variant_key);",
+      " ON VariantsInfo(variant_key, variant_value);",
 
       "CREATE TABLE Genotypes ("
       "id_variant INTEGER NOT NULL,"

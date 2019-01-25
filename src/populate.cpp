@@ -5,6 +5,8 @@
 #include <vcflite/query.hpp>
 #include <vcflite/select.hpp>
 
+#include <tuple>
+
 int VCFLite::insert_meta(sqlite3 *db, const string &file, const string &field,
                          const string &id, opt_str description, opt_str type,
                          opt_str number, opt_str source, opt_str version) {
@@ -71,6 +73,8 @@ int VCFLite::insert_meta_extra(sqlite3 *db, const string &file,
   return finalize(db, stmt);
 }
 
+using pair_str = std::pair<string, string>;
+
 int VCFLite::insert_comment_proper(sqlite3 *db, const std::string &file,
                                    const string &field, const string &value) {
   map_str data{value, ',', '=', '"'};
@@ -83,6 +87,8 @@ int VCFLite::insert_comment_proper(sqlite3 *db, const std::string &file,
     opt_str number{};
     opt_str source{};
     opt_str version{};
+
+    vector<pair_str> extra_fields;
 
     for (const auto &[key, content] : data) {
       if (!content.has_value() || content->empty())
@@ -101,11 +107,14 @@ int VCFLite::insert_comment_proper(sqlite3 *db, const std::string &file,
       else if (key == "Version")
         version = content;
       else
-        insert_meta_extra(db, file, field, *id, key, *content);
+        extra_fields.emplace_back(key, *content);
     }
 
     insert_meta(db, file, field, *id, description, type, number, source,
                 version);
+
+    for (const auto &[key, value] : extra_fields)
+      insert_meta_extra(db, file, field, *id, key, value);
 
   } else
     throw runerror{"Comment missing 'ID' field\n" + field + "=<" + value + ">"};

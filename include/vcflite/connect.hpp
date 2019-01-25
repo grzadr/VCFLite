@@ -27,12 +27,14 @@ private:
   Creator creator{};
 
 public:
-  int open(const string &db_path, bool create = true);
+  int open(const string &db_path, bool create = true,
+           bool disable_foreign = false);
 
   Connector() = delete;
 
-  Connector(const string &db_path, bool create = true) {
-    open(db_path, create);
+  Connector(const string &db_path, bool create = true,
+            bool disable_foreign = false) {
+    open(db_path, create, disable_foreign);
   }
 
   int close() { return sqlite3_close_v2(db); }

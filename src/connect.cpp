@@ -1,8 +1,10 @@
 #include <vcflite/connect.hpp>
 #include <vcflite/populate.hpp>
+#include <vcflite/query.hpp>
 #include <vcflite/select.hpp>
 
-int VCFLite::Connector::open(const std::__cxx11::string &db_path, bool create) {
+int VCFLite::Connector::open(const std::__cxx11::string &db_path, bool create,
+                             bool disable_foreign) {
   //    sqlite3* db = sqlite.get();
 
   auto flag = create ? SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE
@@ -13,6 +15,13 @@ int VCFLite::Connector::open(const std::__cxx11::string &db_path, bool create) {
   if (last_result_code)
     throw runerror{"Can't open database: " + string(sqlite3_errmsg(db)) + "\n"};
 
+  exec(db, "PRAGMA encoding = 'UTF-8';");
+
+  if (disable_foreign)
+    exec(db, "PRAGMA foreign_keys = 0;");
+  else
+    exec(db, "PRAGMA foreign_keys = 1;");
+
   if (create)
     creator.init(db);
 
@@ -20,15 +29,16 @@ int VCFLite::Connector::open(const std::__cxx11::string &db_path, bool create) {
 }
 
 int VCFLite::Connector::check() {
+  std::clog << "[LOG] Checking database\n";
   exec(db, "PRAGMA foreign_key_check;");
   exec(db, "PRAGMA integrity_check;");
-  return 0;
+  return SQLITE_OK;
 }
 
 int VCFLite::Connector::optimize() {
   std::clog << "[LOG] Optimizing database\n";
   exec(db, "PRAGMA optimize;");
-  return 0;
+  return SQLITE_OK;
 }
 
 int VCFLite::Connector::parseVCF(const string &vcf_file,

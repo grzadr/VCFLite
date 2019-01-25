@@ -18,18 +18,24 @@ int main(int argc, char *argv[]) {
                    Args::ValueType::String, 's');
   args.addArgument("optimize", "Optimize database.", Args::ValueType::Bool,
                    'o');
+  args.addArgument("check", "Check database integrity", Args::ValueType::Bool,
+                   'e');
+  args.addArgument("disable-foreign",
+                   "Disable foreign key check during population process. "
+                   "WARNING: may result in broken database.",
+                   Args::ValueType::Bool);
 
   args.parse(argc, argv);
 
   VCFLite::Connector db{*args.getArg("db_path").getValue(),
-                        args.getArg("create").isSet()};
+                        args.getArg("create").isSet(),
+                        args.getArg("disable-foreign").isSet()};
 
   if (const auto &vcf_file = args.getArg("vcf_file").getValue())
     db.parseVCF(*vcf_file, args.getArg("samples").getValue());
 
-  std::clog << "[LOG] Checking database\n";
-
-  db.check();
+  if (args.getArg("check").isSet())
+    db.check();
 
   if (args.getArg("optimize").isSet())
     db.optimize();
