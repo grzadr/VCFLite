@@ -80,7 +80,6 @@ int VCFLite::insert_comment_proper(sqlite3 *db, const std::string &file,
   map_str data{value, ',', '=', '"'};
 
   if (const auto id = *data.get("ID")) {
-    //    std::cerr << *id << "\n";
 
     opt_str description{};
     opt_str type{};
@@ -156,15 +155,16 @@ int VCFLite::insert_variant(sqlite3 *db, const string &file,
                             int variant_start, int variant_end,
                             int variant_length, const string &variant_ref,
                             opt_double variant_qual, opt_int variant_pass,
-                            int variant_alleles) {
+                            int variant_alleles, int variant_idxs) {
   sqlite3_stmt *stmt;
 
   sqlite3_prepare_v2(db,
                      "INSERT INTO Variants "
                      "(id_variant, variant_chrom, variant_start, variant_end, "
-                     "variant_length, variant_ref, variant_qual, variant_pass, "
-                     "variant_alleles, variant_file) "
-                     "VALUES (?1,  ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10);",
+                     "variant_length, variant_ref, variant_qual, "
+                     "variant_filters, variant_alleles, variant_file, "
+                     "variant_idxs) "
+                     "VALUES (?1,  ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11);",
                      -1, &stmt, nullptr);
 
   //  int index = 0;
@@ -188,6 +188,7 @@ int VCFLite::insert_variant(sqlite3 *db, const string &file,
 
   sqlite3_bind_int(stmt, 9, variant_alleles);
   sqlite3_bind_text(stmt, 10, file.c_str(), -1, SQLITE_TRANSIENT);
+  sqlite3_bind_int(stmt, 11, variant_idxs);
 
   return finalize(db, stmt);
 }
@@ -291,11 +292,11 @@ int VCFLite::insert_variant_info(sqlite3 *db, const int id_variant,
 
 int VCFLite::insert_genotype(sqlite3 *db, const int id_variant,
                              const string &sample, const opt_str &gt,
-                             const opt_int dp) {
-  const string query =
-      "INSERT INTO Genotypes "
-      "(id_variant, genotype_sample, genotype_gt, genotype_dp) "
-      "VALUES (?1,  ?2, ?3, ?4);";
+                             const opt_int dp, const bool phased) {
+  const string query = "INSERT INTO Genotypes "
+                       "(id_variant, genotype_sample, genotype_gt, "
+                       "genotype_dp, genotype_phased) "
+                       "VALUES (?1,  ?2, ?3, ?4, ?5);";
 
   sqlite3_stmt *stmt;
 
@@ -313,6 +314,8 @@ int VCFLite::insert_genotype(sqlite3 *db, const int id_variant,
     sqlite3_bind_int(stmt, 4, *dp);
   else
     sqlite3_bind_null(stmt, 4);
+
+  sqlite3_bind_int(stmt, 5, phased);
 
   return finalize(db, stmt);
 }
@@ -358,9 +361,9 @@ int VCFLite::insert_variant_genotypes(
     const auto genotype_record = *(genotypes.begin() + i);
 
     insert_genotype(db, id_variant, genotype_sample, genotype_record.getGT(),
-                    genotype_record.getDP());
+                    genotype_record.getDP(), genotype_record.isPhased());
 
-    if (genotype_record.isPhased())
+    if (genotype_record.hasPhases())
       insert_genotype_phase(db, id_variant, genotype_sample,
                             genotype_record.getPhasedID(),
                             genotype_record.getPhasedGT());
@@ -418,7 +421,8 @@ int VCFLite::insert_record(sqlite3 *db, const string &file,
                            const vector<int> &samples_picked) {
   insert_variant(db, file, id_variant, record.getChrom(), record.getStart(),
                  record.getEnd(), record.getLength(), record.getRef(),
-                 record.getQual(), record.getPass(), record.getAlleles());
+                 record.getQual(), record.getPass(), record.getAlleles(),
+                 record.countIDs());
 
   insert_variant_ids(db, id_variant, record.getIDs());
   insert_variant_filters(db, id_variant, record.getFilters());

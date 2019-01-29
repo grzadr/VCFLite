@@ -22,8 +22,8 @@ using map_str = AGizmo::Printable::PrintableStrMap;
 
 namespace VCFLite {
 
-int insert_meta(sqlite3 *db, const std::string &file, const string &field,
-                const std::string &id, opt_str description, opt_str type,
+int insert_meta(sqlite3 *db, const string &file, const string &field,
+                const string &id, opt_str description, opt_str type,
                 opt_str number, opt_str source, opt_str version);
 int insert_meta_extra(sqlite3 *db, const string &file, const string &field,
                       const string &id, string key, string value);
@@ -40,7 +40,7 @@ int insert_variant(sqlite3 *db, const string &file, const int id_variant,
                    const string &variant_chrom, int variant_start,
                    int variant_end, int variant_length,
                    const string &variant_ref, opt_double variant_qual,
-                   opt_int variant_pass, int variant_alleles);
+                   opt_int variant_pass, int variant_alleles, int variant_idxs);
 
 int insert_variant_ids(sqlite3 *db, const int id_variant,
                        const vector<string> ids);
@@ -56,7 +56,7 @@ int insert_variant_info(sqlite3 *db, const int id_variant,
                         const map_str &variant_info);
 
 int insert_genotype(sqlite3 *db, const int id_variant, const string &sample,
-                    const opt_str &gt, const opt_int dp);
+                    const opt_str &gt, const opt_int dp, const bool phased);
 
 int insert_genotype_phase(sqlite3 *db, const int id_variant,
                           const string &sample, const opt_str phased_id,

@@ -11,23 +11,19 @@ int VCFLite::Creator::init(sqlite3 *db) {
   std::clog << "[LOG] Dropping old tables\n";
 
   vector<string> drop_queries{
-      "DROP TABLE IF EXISTS MetaInfo;",
-      "DROP TABLE IF EXISTS MetaInfoContigs;",
       "DROP TABLE IF EXISTS MetaInfoExtra;",
+      "DROP TABLE IF EXISTS MetaInfo;",
 
-      "DROP TABLE IF EXISTS Variants;",
+      "DROP TABLE IF EXISTS GenotypesPhase;",
+      "DROP TABLE IF EXISTS GenotypesInfo;",
+      "DROP TABLE IF EXISTS GenotypesAlleles;",
+      "DROP TABLE IF EXISTS Genotypes;",
+
       "DROP TABLE IF EXISTS VariantsIDs;",
       "DROP TABLE IF EXISTS VariantsFilters;",
       "DROP TABLE IF EXISTS VariantsAlleles;",
       "DROP TABLE IF EXISTS VariantsInfo;",
-
-      "DROP TABLE IF EXISTS Samples;",
-      "DROP TABLE IF EXISTS SamplesInfo;",
-
-      "DROP TABLE IF EXISTS Genotypes;",
-      "DROP TABLE IF EXISTS GenotypesInfo;",
-      "DROP TABLE IF EXISTS GenotypesAlleles;",
-      "DROP TABLE IF EXISTS GenotypesPhase;",
+      "DROP TABLE IF EXISTS Variants;",
   };
 
   exec(db, drop_queries.begin(), drop_queries.end());
@@ -73,16 +69,19 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "variant_length INTEGER NOT NULL,"
       "variant_ref TEXT NOT NULL COLLATE NOCASE,"
       "variant_qual REAL DEFAULT NULL,"
-      "variant_pass INTEGER DEFAULT NULL,"
-      "variant_alleles INTEGER DEFAULT NULL"
+      "variant_filters INTEGER DEFAULT NULL,"
+      "variant_alleles INTEGER DEFAULT NULL,"
+      "variant_idxs INTEGER NOT NULL"
       ");",
 
       "CREATE INDEX idxVariantsPos "
       "ON Variants(variant_chrom, variant_start, variant_end);",
-      "CREATE INDEX idxVariantsPass "
-      "ON Variants(variant_pass);",
+      "CREATE INDEX idxVariantsFilt "
+      "ON Variants(variant_filters);",
       "CREATE INDEX idxVariantsAlleles "
       "ON Variants(variant_alleles);",
+      "CREATE INDEX idxVariantsIdxs "
+      "ON Variants(variant_idxs);",
 
       "CREATE TABLE VariantsIDs ("
       "id_variant INTEGER NOT NULL,"
@@ -93,6 +92,8 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
+      "CREATE INDEX idxVariantsIDsID ON VariantsIDs(id_variant);",
+
       "CREATE TABLE VariantsFilters ("
       "id_variant INTEGER NOT NULL,"
       "variant_filter TEXT NOT NULL COLLATE NOCASE,"
@@ -100,6 +101,8 @@ int VCFLite::Creator::init(sqlite3 *db) {
       ""
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
+
+      "CREATE INDEX idxVariantsFiltersID ON VariantsFilters(id_variant);",
 
       "CREATE TABLE VariantsAlleles ("
       "id_variant INTEGER NOT NULL,"
@@ -116,7 +119,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "variant_key TEXT NOT NULL COLLATE NOCASE,"
       "variant_value TEXT DEFAULT NULL COLLATE NOCASE,"
       ""
-      "PRIMARY KEY(variant_key, id_variant),"
+      "PRIMARY KEY(id_variant, variant_key),"
       ""
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
@@ -129,6 +132,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
       "genotype_gt TEXT DEFAULT NULL COLLATE NOCASE,"
       "genotype_dp INTEGER DEFAULT NULL COLLATE NOCASE,"
+      "genotype_phased BOOLEAN NOT NULL,"
       ""
       "PRIMARY KEY(genotype_sample, id_variant),"
       ""
@@ -152,6 +156,9 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "REFERENCES VariantsAlleles(id_variant, variant_allele_id)"
       ""
       ");",
+
+      "CREATE INDEX idxGenotypesAllelesID "
+      "ON GenotypesAlleles(id_variant, variant_allele_id);",
 
       "CREATE TABLE GenotypesPhase ("
       "id_variant INTEGER NOT NULL,"
