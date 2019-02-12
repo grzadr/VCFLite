@@ -46,6 +46,7 @@ public:
 
   int check();
   int optimize();
+  int index();
 
   int parseVCF(const string &vcf_file, const optional<string> &samples);
 

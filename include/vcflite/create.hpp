@@ -13,10 +13,11 @@ using std::string;
 using std::vector;
 
 class Creator {
- private:
- public:
+private:
+public:
   Creator() = default;
 
   int init(sqlite3 *db);
+  int index(sqlite3 *db);
 };
-}  // namespace VCFLite
+} // namespace VCFLite

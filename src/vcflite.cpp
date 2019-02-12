@@ -20,6 +20,7 @@ int main(int argc, char *argv[]) {
                    'o');
   args.addArgument("check", "Check database integrity", Args::ValueType::Bool,
                    'e');
+  args.addArgument("index", "Index database", Args::ValueType::Bool, 'i');
   args.addArgument("disable-foreign",
                    "Disable foreign key check during population process. "
                    "WARNING: may result in broken database.",
@@ -36,6 +37,9 @@ int main(int argc, char *argv[]) {
 
   if (args.getArg("check").isSet())
     db.check();
+
+  if (args.getArg("index").isSet())
+    db.index();
 
   if (args.getArg("optimize").isSet())
     db.optimize();

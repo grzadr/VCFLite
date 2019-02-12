@@ -74,15 +74,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "variant_idxs INTEGER NOT NULL"
       ");",
 
-      "CREATE INDEX idxVariantsPos "
-      "ON Variants(variant_chrom, variant_start, variant_end);",
-      "CREATE INDEX idxVariantsFilt "
-      "ON Variants(variant_filters);",
-      "CREATE INDEX idxVariantsAlleles "
-      "ON Variants(variant_alleles);",
-      "CREATE INDEX idxVariantsIdxs "
-      "ON Variants(variant_idxs);",
-
       "CREATE TABLE VariantsIDs ("
       "id_variant INTEGER NOT NULL,"
       "variant_idx TEXT NOT NULL COLLATE NOCASE,"
@@ -92,8 +83,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
-      "CREATE INDEX idxVariantsIDsID ON VariantsIDs(id_variant);",
-
       "CREATE TABLE VariantsFilters ("
       "id_variant INTEGER NOT NULL,"
       "variant_filter TEXT NOT NULL COLLATE NOCASE,"
@@ -101,8 +90,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
       ""
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
-
-      "CREATE INDEX idxVariantsFiltersID ON VariantsFilters(id_variant);",
 
       "CREATE TABLE VariantsAlleles ("
       "id_variant INTEGER NOT NULL,"
@@ -124,9 +111,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
-      "CREATE INDEX idxVariantsInfo"
-      " ON VariantsInfo(variant_key, variant_value);",
-
       "CREATE TABLE Genotypes ("
       "id_variant INTEGER NOT NULL,"
       "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
@@ -139,14 +123,12 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
 
-      "CREATE INDEX idxGenotypesDP ON Genotypes(genotype_dp);",
-      "CREATE INDEX idxGenotypesID ON Genotypes(id_variant);",
-
       "CREATE TABLE GenotypesAlleles ("
       "id_variant INTEGER NOT NULL,"
       "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
-      "genotype_position INTEGER NOT NULL COLLATE NOCASE,"
-      "variant_allele_id INTEGER NOT NULL COLLATE NOCASE,"
+      "genotype_position INTEGER DEFAULT NULL,"
+      "genotype_sequence TEXT DEFAULT NULL COLLATE NOCASE,"
+      "variant_allele_id INTEGER DEFAULT NULL,"
       ""
       "PRIMARY KEY(id_variant, genotype_sample, genotype_position), "
       ""
@@ -156,9 +138,6 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "REFERENCES VariantsAlleles(id_variant, variant_allele_id)"
       ""
       ");",
-
-      "CREATE INDEX idxGenotypesAllelesID "
-      "ON GenotypesAlleles(id_variant, variant_allele_id);",
 
       "CREATE TABLE GenotypesPhase ("
       "id_variant INTEGER NOT NULL,"
@@ -185,14 +164,73 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "REFERENCES Genotypes(id_variant, genotype_sample)"
       ");",
 
-      "CREATE INDEX idxGenotypesInfo"
-      " ON GenotypesInfo(genotype_key, genotype_value);",
-
   };
 
   exec(db, create_queries.begin(), create_queries.end());
 
   std::clog << "[LOG] Completed\n";
+
+  commit(db);
+
+  std::clog << "[LOG] Commiting changes\n";
+
+  return 0;
+}
+
+int VCFLite::Creator::index(sqlite3 *db) {
+  std::clog << "[LOG] Indexing database\n";
+
+  transaction(db);
+
+  std::clog << "[LOG] Dropping old indexes\n";
+
+  vector<string> drop_queries{
+      "DROP INDEX IF EXISTS idxVariantsPos;",
+      "DROP INDEX IF EXISTS idxVariantsFilt;",
+      "DROP INDEX IF EXISTS idxVariantsAlleles;",
+      "DROP INDEX IF EXISTS idxVariantsIdxs;",
+      "DROP INDEX IF EXISTS idxVariantsIDsID",
+      "DROP INDEX IF EXISTS idxVariantsFiltersID",
+      "DROP INDEX IF EXISTS idxVariantsInfo",
+      "DROP INDEX IF EXISTS idxGenotypesDP",
+      "DROP INDEX IF EXISTS idxGenotypesID",
+      "DROP INDEX IF EXISTS idxGenotypesAllelesID",
+      "DROP INDEX IF EXISTS idxGenotypesInfo",
+  };
+
+  exec(db, drop_queries.begin(), drop_queries.end());
+
+  std::clog << "[LOG] Completed\n";
+
+  std::clog << "[LOG] Creating new indexes\n";
+
+  vector<string> create_queries{
+      "CREATE INDEX idxVariantsPos"
+      " ON Variants(variant_chrom, variant_start, variant_end);",
+      "CREATE INDEX idxVariantsFilt ON Variants(variant_filters);",
+      "CREATE INDEX idxVariantsAlleles ON Variants(variant_alleles);",
+      "CREATE INDEX idxVariantsIdxs ON Variants(variant_idxs);",
+
+      "CREATE INDEX idxVariantsIDsID ON VariantsIDs(id_variant);",
+
+      "CREATE INDEX idxVariantsFiltersID ON VariantsFilters(id_variant);",
+
+      "CREATE INDEX idxVariantsInfo"
+      " ON VariantsInfo(variant_key, variant_value);",
+
+      "CREATE INDEX idxGenotypesDP ON Genotypes(genotype_dp);",
+      "CREATE INDEX idxGenotypesID ON Genotypes(id_variant);",
+
+      "CREATE INDEX idxGenotypesAllelesID "
+      "ON GenotypesAlleles(id_variant, variant_allele_id);",
+
+      "CREATE INDEX idxGenotypesInfo"
+      " ON GenotypesInfo(genotype_key, genotype_value);",
+  };
+
+  exec(db, create_queries.begin(), create_queries.end());
+
+  std::clog << "[LOG] Index creation completed\n";
 
   commit(db);
 

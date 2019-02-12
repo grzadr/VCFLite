@@ -19,7 +19,7 @@ namespace VCFLite::Select {
 inline int max_variant_id(sqlite3 *db) {
   sqlite3_stmt *stmt;
 
-  sqlite3_prepare_v2(db, "SELECT IFNULL(MAX(id_variant), 1) FROM Variants", -1,
+  sqlite3_prepare_v2(db, "SELECT IFNULL(MAX(id_variant), 0) FROM Variants", -1,
                      &stmt, nullptr);
 
   step(db, stmt, SQLITE_ROW);
@@ -58,4 +58,4 @@ inline int phased_variant_id(sqlite3 *db, const int id_variant,
   return result;
 }
 
-}  // namespace VCFLite::Select
+} // namespace VCFLite::Select

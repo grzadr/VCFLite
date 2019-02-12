@@ -357,6 +357,7 @@ int VCFLite::insert_variant_genotypes(
   sqlite3_stmt *stmt;
 
   for (const auto &i : samples_picked) {
+
     const auto genotype_sample = *(samples_reference.begin() + i);
     const auto genotype_record = *(genotypes.begin() + i);
 
@@ -370,9 +371,9 @@ int VCFLite::insert_variant_genotypes(
 
     const string query_genotype_alleles =
         "INSERT INTO GenotypesAlleles "
-        "(id_variant, genotype_sample, genotype_position, "
+        "(id_variant, genotype_sample, genotype_position, genotype_sequence,"
         "variant_allele_id) "
-        "VALUES (?1,  ?2, ?3, ?4);";
+        "VALUES (?1, ?2, ?3, ?4, ?5);";
 
     for (const auto &allele : genotype_record.getAlleles()) {
       sqlite3_prepare_v2(db, query_genotype_alleles.c_str(), -1, &stmt,
@@ -382,10 +383,14 @@ int VCFLite::insert_variant_genotypes(
       sqlite3_bind_text(stmt, 2, genotype_sample.c_str(), -1, SQLITE_TRANSIENT);
       sqlite3_bind_int(stmt, 3, allele.getPosition());
 
-      if (const auto &gt = allele.getAllele())
-        sqlite3_bind_int(stmt, 4, *gt);
-      else
+      if (const auto &gt = allele.getAllele()) {
+        sqlite3_bind_text(stmt, 4, allele.getSeq()->c_str(), -1,
+                          SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 5, *gt);
+      } else {
         sqlite3_bind_null(stmt, 4);
+        sqlite3_bind_null(stmt, 5);
+      }
 
       finalize(db, stmt);
     }
@@ -419,9 +424,10 @@ int VCFLite::insert_record(sqlite3 *db, const string &file,
                            const HKL::VCF::VCFRecord &record,
                            const vector<string> &samples_reference,
                            const vector<int> &samples_picked) {
+
   insert_variant(db, file, id_variant, record.getChrom(), record.getStart(),
                  record.getEnd(), record.getLength(), record.getRef(),
-                 record.getQual(), record.getPass(), record.getAlleles(),
+                 record.getQual(), record.getPass(), record.getAllelesCount(),
                  record.countIDs());
 
   insert_variant_ids(db, id_variant, record.getIDs());

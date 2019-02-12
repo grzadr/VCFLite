@@ -41,18 +41,25 @@ int VCFLite::Connector::optimize() {
   return SQLITE_OK;
 }
 
+int VCFLite::Connector::index() {
+  creator.index(db);
+
+  return last_result_code;
+}
+
 int VCFLite::Connector::parseVCF(const string &vcf_file,
                                  const optional<string> &samples) {
   std::clog << "[LOG] Parsing VCF: " << vcf_file << "\n";
 
   VCF::VCFReader reader(vcf_file);
 
-  auto id_variant = Select::max_variant_id(db);
+  auto start_id_variant = Select::max_variant_id(db) + 1;
+  auto id_variant = start_id_variant;
 
   transaction(db);
 
   while (auto ele = reader()) {
-    if (id_variant % 25000 == 0)
+    if (id_variant % 5000 == 0)
       std::clog << "Last inserted id: " << id_variant << "\n";
 
     if (std::holds_alternative<VCF::VCFComment>(*ele))
@@ -61,9 +68,12 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
       if (samples.has_value())
         reader.provideSamples(*samples);
     } else
-      insert_record(db, vcf_file, ++id_variant, std::get<VCF::VCFRecord>(*ele),
+      insert_record(db, vcf_file, id_variant++, std::get<VCF::VCFRecord>(*ele),
                     reader.getSamplesReference(), reader.getSamplesPicked());
   }
+
+  std::clog << "[LOG] Parsed " << id_variant - start_id_variant << " variants\n"
+            << "[LOG] Commiting changes\n";
 
   commit(db);
 
