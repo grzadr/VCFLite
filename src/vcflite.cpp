@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
   Args::Arguments args{};
 
   args.addPositional("db_path", "Path to new database file");
-  args.addObligatoryArgument("vcf_file", "Path to vcf file", 'v');
+  args.addObligatory("vcf_file", "Path to vcf file", 'v');
   args.allowMultipleValues("vcf_file");
   args.addArgument("samples", "List with samples, delimetered with ','.", 's');
   args.addSwitch("create", "Force to create db", 'c');
