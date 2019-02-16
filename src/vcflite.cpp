@@ -7,7 +7,7 @@ using namespace AGizmo;
 using namespace HKL;
 
 int main(int argc, char *argv[]) {
-  Args::Arguments args{};
+  Args::NewArguments args{};
 
   args.addPositional("db_path", "Path to new database file");
   args.addObligatory("vcf_file", "Path to vcf file", 'v');
