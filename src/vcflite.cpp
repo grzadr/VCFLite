@@ -10,18 +10,19 @@ int main(int argc, char *argv[]) {
   Args::NewArguments args{};
 
   args.addPositional("db_path", "Path to new database file");
-  args.addObligatory("vcf_file", "Path to vcf file", 'v');
-  args.allowMultipleValues("vcf_file");
-  args.addArgument("samples", "List with samples, delimetered with ','.", 's');
-  args.addSwitch("create", "Force to create db", 'c');
-  args.addSwitch("optimize", "Optimize database.", 'o');
-  args.addSwitch("check", "Check database integrity", 'e');
-  args.addSwitch("index", "Index database", 'i');
-  args.addSwitch("disable-foreign",
-                 "Disable foreign key check during population process. "
-                 "WARNING: may result in broken database.");
+  //  args.addMultiObligatory("vcf_file", "Path to vcf file", 'v');
+  //  args.addArgument("samples", "List with samples, delimetered with ','.",
+  //  's');
+  //  args.addSwitch("create", "Force to create db", 'c');
+  //  args.addSwitch("optimize", "Optimize database.", 'o');
+  //  args.addSwitch("check", "Check database integrity", 'e');
+  //  args.addSwitch("index", "Index database", 'i');
+  //  args.addSwitch("disable-foreign",
+  //                 "Disable foreign key check during population process. "
+  //                 "WARNING: may result in broken database.");
 
-  args.parse(argc, argv);
+  if (!args.parse(argc, argv))
+    return 1;
 
   return 0;
 

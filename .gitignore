@@ -34,6 +34,11 @@
 # Build directories
 
 /build/
+/cmake-build-*/
+
+# CLion Configuration files
+
+/.idea/
 
 #User CMake files
 
