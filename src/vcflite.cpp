@@ -23,23 +23,21 @@ int main(int argc, char *argv[]) {
   if (!args.parse(argc, argv))
     return 1;
 
+  VCFLite::Connector db{*args.getValue("db_path"), args.isSet("create"),
+                        args.isSet("disable-foreign")};
+
+  for (const auto &vcf_file : args.iterateValues("vcf")) {
+    db.parseVCF(vcf_file, args.getValue("samples"));
+  }
+
+  if (args.isSet("index"))
+    db.index();
+
+  if (args.isSet("optimize"))
+    db.optimize();
+
+  if (args.isSet("check"))
+    db.check();
+
   return 0;
-
-  //  VCFLite::Connector db{*args.getArg("db_path").getValue(),
-  //                        args.getArg("create").isSet(),
-  //                        args.getArg("disable-foreign").isSet()};
-
-  //  if (const auto &vcf_file = args.getArg("vcf_file").getValue())
-  //    db.parseVCF(*vcf_file, args.getArg("samples").getValue());
-
-  //  if (args.getArg("check").isSet())
-  //    db.check();
-
-  //  if (args.getArg("index").isSet())
-  //    db.index();
-
-  //  if (args.getArg("optimize").isSet())
-  //    db.optimize();
-
-  //  return 0;
 }
