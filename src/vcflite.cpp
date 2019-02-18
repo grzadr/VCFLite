@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   VCFLite::Connector db{*args.getValue("db_path"), args.isSet("create"),
                         args.isSet("disable-foreign")};
 
-  for (const auto &vcf_file : args.iterateValues("vcf")) {
+  for (const auto &vcf_file : args.getIterable("vcf")) {
     db.parseVCF(vcf_file, args.getValue("samples"));
   }
 
