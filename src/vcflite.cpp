@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
                  "Disable foreign key check during population process. "
                  "WARNING: may result in broken database.");
 
-  if (!args.parse(argc, argv))
+  if (args.parse(argc, argv))
     return 1;
 
   VCFLite::Connector db{*args.getValue("db_path"), args.isSet("create"),
