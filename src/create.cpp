@@ -86,7 +86,7 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "CREATE TABLE VariantsFilters ("
       "id_variant INTEGER NOT NULL,"
       "variant_filter TEXT NOT NULL COLLATE NOCASE,"
-      "PRIMARY KEY(variant_filter, id_variant),"
+      "PRIMARY KEY(id_variant, variant_filter),"
       ""
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
@@ -209,7 +209,7 @@ int VCFLite::Creator::index(sqlite3 *db) {
   vector<string> create_queries{
       "CREATE INDEX idxVariantsPos"
       " ON Variants(variant_chrom, variant_start, variant_end);",
-      "CREATE INDEX idxVariantsFilt ON Variants(variant_filters);",
+      "CREATE INDEX idxVariantsFilters ON Variants(variant_filter);",
       "CREATE INDEX idxVariantsAlleles ON Variants(variant_alleles);",
       "CREATE INDEX idxVariantsIdxs ON Variants(variant_idxs);",
 
