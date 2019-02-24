@@ -56,7 +56,8 @@ int insert_variant_info(sqlite3 *db, const int id_variant,
                         const map_str &variant_info);
 
 int insert_genotype(sqlite3 *db, const int id_variant, const string &sample,
-                    const opt_str &gt, const opt_int dp, const bool phased);
+                    const opt_str &gt, const opt_str &gt_decoded,
+                    const opt_int dp, const bool phased);
 
 int insert_genotype_phase(sqlite3 *db, const int id_variant,
                           const string &sample, const opt_str phased_id,

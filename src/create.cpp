@@ -115,10 +115,11 @@ int VCFLite::Creator::init(sqlite3 *db) {
       "id_variant INTEGER NOT NULL,"
       "genotype_sample TEXT NOT NULL COLLATE NOCASE,"
       "genotype_gt TEXT DEFAULT NULL COLLATE NOCASE,"
+      "genotype_gt_decoded TEXT DEFAULT NULL COLLATE NOCASE,"
       "genotype_dp INTEGER DEFAULT NULL COLLATE NOCASE,"
       "genotype_phased BOOLEAN NOT NULL,"
       ""
-      "PRIMARY KEY(genotype_sample, id_variant),"
+      "PRIMARY KEY(id_variant, genotype_sample),"
       ""
       "FOREIGN KEY(id_variant) REFERENCES Variants(id_variant)"
       ");",
@@ -220,7 +221,7 @@ int VCFLite::Creator::index(sqlite3 *db) {
       " ON VariantsInfo(variant_key, variant_value);",
 
       "CREATE INDEX idxGenotypesDP ON Genotypes(genotype_dp);",
-      "CREATE INDEX idxGenotypesID ON Genotypes(id_variant);",
+      "CREATE INDEX idxGenotypesSample ON Genotypes(genotype_sample);",
 
       "CREATE INDEX idxGenotypesAllelesID "
       "ON GenotypesAlleles(id_variant, variant_allele_id);",

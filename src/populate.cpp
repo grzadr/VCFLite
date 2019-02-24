@@ -292,11 +292,12 @@ int VCFLite::insert_variant_info(sqlite3 *db, const int id_variant,
 
 int VCFLite::insert_genotype(sqlite3 *db, const int id_variant,
                              const string &sample, const opt_str &gt,
-                             const opt_int dp, const bool phased) {
+                             const opt_str &gt_decoded, const opt_int dp,
+                             const bool phased) {
   const string query = "INSERT INTO Genotypes "
                        "(id_variant, genotype_sample, genotype_gt, "
-                       "genotype_dp, genotype_phased) "
-                       "VALUES (?1,  ?2, ?3, ?4, ?5);";
+                       "genotype_gt_decoded, genotype_dp, genotype_phased) "
+                       "VALUES (?1,  ?2, ?3, ?4, ?5, ?6);";
 
   sqlite3_stmt *stmt;
 
@@ -310,12 +311,17 @@ int VCFLite::insert_genotype(sqlite3 *db, const int id_variant,
   else
     sqlite3_bind_null(stmt, 3);
 
-  if (dp.has_value())
-    sqlite3_bind_int(stmt, 4, *dp);
+  if (gt_decoded.has_value())
+    sqlite3_bind_text(stmt, 4, gt_decoded->c_str(), -1, SQLITE_TRANSIENT);
   else
     sqlite3_bind_null(stmt, 4);
 
-  sqlite3_bind_int(stmt, 5, phased);
+  if (dp.has_value())
+    sqlite3_bind_int(stmt, 5, *dp);
+  else
+    sqlite3_bind_null(stmt, 5);
+
+  sqlite3_bind_int(stmt, 6, phased);
 
   return finalize(db, stmt);
 }
@@ -362,7 +368,8 @@ int VCFLite::insert_variant_genotypes(
     const auto genotype_record = *(genotypes.begin() + i);
 
     insert_genotype(db, id_variant, genotype_sample, genotype_record.getGT(),
-                    genotype_record.getDP(), genotype_record.isPhased());
+                    genotype_record.getGTDecoded(), genotype_record.getDP(),
+                    genotype_record.isPhased());
 
     if (genotype_record.hasPhases())
       insert_genotype_phase(db, id_variant, genotype_sample,
