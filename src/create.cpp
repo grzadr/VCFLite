@@ -188,11 +188,11 @@ int VCFLite::Creator::index(sqlite3 *db) {
 
   vector<string> drop_queries{
       "DROP INDEX IF EXISTS idxVariantsPos;",
-      "DROP INDEX IF EXISTS idxVariantsFilt;",
+      "DROP INDEX IF EXISTS idxVariantsFiltered;",
       "DROP INDEX IF EXISTS idxVariantsAlleles;",
       "DROP INDEX IF EXISTS idxVariantsIdxs;",
       "DROP INDEX IF EXISTS idxVariantsIDsID",
-      "DROP INDEX IF EXISTS idxVariantsFiltersID",
+      "DROP INDEX IF EXISTS idxVariantsFiltersNames",
       "DROP INDEX IF EXISTS idxVariantsInfo",
       "DROP INDEX IF EXISTS idxGenotypesDP",
       "DROP INDEX IF EXISTS idxGenotypesID",
@@ -209,13 +209,13 @@ int VCFLite::Creator::index(sqlite3 *db) {
   vector<string> create_queries{
       "CREATE INDEX idxVariantsPos"
       " ON Variants(variant_chrom, variant_start, variant_end);",
-      "CREATE INDEX idxVariantsFilters ON Variants(variant_filter);",
+      "CREATE INDEX idxVariantsFiltered ON Variants(variant_filters);",
       "CREATE INDEX idxVariantsAlleles ON Variants(variant_alleles);",
       "CREATE INDEX idxVariantsIdxs ON Variants(variant_idxs);",
 
       "CREATE INDEX idxVariantsIDsID ON VariantsIDs(id_variant);",
 
-      "CREATE INDEX idxVariantsFiltersID ON VariantsFilters(id_variant);",
+      "CREATE INDEX idxVariantsFiltersNames ON VariantsFilters(variant_filter);",
 
       "CREATE INDEX idxVariantsInfo"
       " ON VariantsInfo(variant_key, variant_value);",
