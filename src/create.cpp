@@ -168,11 +168,12 @@ int VCFLite::Creator::init(sqlite3 *db) {
 
   exec(db, create_queries.begin(), create_queries.end());
 
-  std::clog << "[LOG] Completed\n";
+  std::clog << "[LOG] Completed\n"
+            << "[LOG] Commiting changes";
 
   commit(db);
 
-  std::clog << "[LOG] Commiting changes\n";
+  std::clog << "[LOG] Committed!\n";
 
   return 0;
 }

@@ -3,9 +3,8 @@
 #include <vcflite/query.hpp>
 #include <vcflite/select.hpp>
 
-int VCFLite::Connector::open(const std::__cxx11::string &db_path, bool create,
+int VCFLite::Connector::open(const std::string &db_path, bool create,
                              bool disable_foreign) {
-  //    sqlite3* db = sqlite.get();
 
   auto flag = create ? SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE
                      : SQLITE_OPEN_READWRITE;
