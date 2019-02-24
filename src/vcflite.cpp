@@ -9,8 +9,8 @@ using namespace HKL;
 int main(int argc, char *argv[]) {
   Args::Arguments args{};
 
-  args.addPositional("db_path", "Path to new database file");
-  args.addMultiObligatory("vcf", "Path to vcf file", 'v');
+  args.addPositional("db_path", "Path to new database file", true);
+  args.addMulti("vcf", "Path to vcf file", 'v');
   args.addArgument("samples", "List with samples, delimetered with ','.", 's');
   args.addSwitch("create", "Force to create db", 'c');
   args.addSwitch("optimize", "Optimize database.", 'o');
