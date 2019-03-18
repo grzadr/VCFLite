@@ -15,6 +15,8 @@ int VCFLite::Connector::open(const std::string &db_path, bool create,
     throw runerror{"Can't open database: " + string(sqlite3_errmsg(db)) + "\n"};
 
   exec(db, "PRAGMA encoding = 'UTF-8';");
+  exec(db, "PRAGMA journal_mode = MEMORY;");
+  exec(db, "PRAGMA locking_mode = EXCLUSIVE;");
 
   if (disable_foreign)
     exec(db, "PRAGMA foreign_keys = 0;");
