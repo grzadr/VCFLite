@@ -230,7 +230,7 @@ int VCFLite::Creator::index(sqlite3 *db) {
       " ON GenotypesInfo(genotype_key, genotype_value);",
   };
 
-  exec(db, create_queries.begin(), create_queries.end());
+  exec(db, create_queries.begin(), create_queries.end(), true);
 
   std::clog << "[LOG] Index creation completed\n";
 

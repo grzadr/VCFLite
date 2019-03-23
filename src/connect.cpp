@@ -3,6 +3,10 @@
 #include <vcflite/query.hpp>
 #include <vcflite/select.hpp>
 
+#include <agizmo/logging.hpp>
+
+using namespace AGizmo;
+
 int VCFLite::Connector::open(const std::string &db_path, bool create,
                              bool disable_foreign) {
 
@@ -31,19 +35,40 @@ int VCFLite::Connector::open(const std::string &db_path, bool create,
 
 int VCFLite::Connector::check() {
   std::clog << "[LOG] Checking database\n";
+  Logging::Timer elapsed;
+
   exec(db, "PRAGMA foreign_key_check;");
   exec(db, "PRAGMA integrity_check;");
+
+  elapsed.mark();
+  std::clog << "[LOG] Database check completed in "
+            << elapsed << std::endl;
+
   return SQLITE_OK;
 }
 
 int VCFLite::Connector::optimize() {
   std::clog << "[LOG] Optimizing database\n";
+  Logging::Timer elapsed;
+
   exec(db, "PRAGMA optimize;");
+
+  elapsed.mark();
+  std::clog << "[LOG] Database optimized in "
+            << elapsed << std::endl;
+
   return SQLITE_OK;
 }
 
 int VCFLite::Connector::index() {
+  std::clog << "[LOG] Indexing database" << std::endl;
+  Logging::Timer elapsed;
+
   creator.index(db);
+
+  elapsed.mark();
+  std::clog << "[LOG] Database indexed in "
+            << elapsed << std::endl;
 
   return last_result_code;
 }
@@ -54,13 +79,15 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
 
   VCF::VCFReader reader(vcf_file);
 
-  auto start_id_variant = Select::max_variant_id(db) + 1;
-  auto id_variant = start_id_variant;
+  //auto start_id_variant = Select::max_variant_id(db) + 1;
+  //auto id_variant = start_id_variant;
+  auto id_variant = Select::max_variant_id(db) + 1;
+  int total_parsed = 0;
 
   transaction(db);
 
   while (auto ele = reader()) {
-    if (id_variant % 5000 == 0)
+    if (++total_parsed % 5000 == 0)
       std::clog << "Last inserted id: " << id_variant << "\n";
 
     if (std::holds_alternative<VCF::VCFComment>(*ele))
@@ -73,12 +100,13 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
                     reader.getSamplesReference(), reader.getSamplesPicked());
   }
 
-  std::clog << "[LOG] Parsed " << id_variant - start_id_variant << " variants\n"
+  std::clog << "[LOG] Completed VCF: " << vcf_file
+            << ";Inserted records: " << total_parsed << " "
             << "[LOG] Commiting changes\n";
 
   commit(db);
 
   std::clog << "[LOG] Parsing Completed\n";
 
-  return 0;
+  return total_parsed;
 }

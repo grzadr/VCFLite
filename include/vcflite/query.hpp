@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <string>
+#include <iterator>
 
 using runerror = std::runtime_error;
 using std::string;
@@ -34,16 +35,25 @@ inline int exec(sqlite3 *db, const string &query) {
 }
 
 template <class It>
-inline int exec(sqlite3 *db, It begin, const It end) {
+inline int exec(sqlite3 *db, It begin, const It end, bool verbose = false) {
   sqlite3_stmt *stmt;
 
   for (It t = begin; t < end; ++t) {
     if (sqlite3_prepare_v2(db, (*t).c_str(), static_cast<int>((*t).size()),
                            &stmt, nullptr) != SQLITE_OK)
       panic(db, *t);
+
     if (auto rc = sqlite3_step(stmt);
         rc != SQLITE_DONE && rc != SQLITE_ROW && rc != SQLITE_OK)
       panic(db, *t);
+
+    if (verbose){
+
+      std::clog << "[LOG] Executed query "
+                << std::distance(begin, t) << "/"
+                << std::distance(begin, end) << std::endl;
+    }
+
   }
 
   return sqlite3_finalize(stmt);

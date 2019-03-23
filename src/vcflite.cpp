@@ -2,6 +2,7 @@
 
 #include <agizmo/args.hpp>
 #include <vcflite/connect.hpp>
+#include <agizmo/logging.hpp>
 
 using namespace AGizmo;
 using namespace HKL;
@@ -23,11 +24,23 @@ int main(int argc, char *argv[]) {
   if (args.parse(argc, argv))
     return 1;
 
+  Logging::Timer total_elapsed;
+
   VCFLite::Connector db{*args.getValue("db_path"), args.isSet("create"),
                         args.isSet("disable-foreign")};
 
-  for (const auto &vcf_file : args.getIterable("vcf")) {
-    db.parseVCF(vcf_file, args.getValue("samples"));
+  if (args.isSet("vcf")){
+    int total_records = 0;
+
+    Logging::Timer insert_elapsed;
+
+    for (const auto &vcf_file : args.getIterable("vcf")) {
+      total_records += db.parseVCF(vcf_file, args.getValue("samples"));
+    }
+
+    insert_elapsed.mark();
+    std::clog << "[LOG] Inserted " << total_records
+              << " in " << insert_elapsed << std::endl;
   }
 
   if (args.isSet("index"))
@@ -38,6 +51,9 @@ int main(int argc, char *argv[]) {
 
   if (args.isSet("check"))
     db.check();
+
+  total_elapsed.mark();
+  std::clog << "[LOG] Operations completed in " << total_elapsed << "\n";
 
   return 0;
 }
