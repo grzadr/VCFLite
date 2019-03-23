@@ -43,3 +43,7 @@
 #User CMake files
 
 *.txt.user
+
+#Vim temp files
+
+.*.sw?
