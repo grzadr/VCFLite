@@ -48,7 +48,7 @@ public:
   int optimize();
   int index();
 
-  int parseVCF(const string &vcf_file, const optional<string> &samples);
+  int parseVCF(const string &vcf_file, const vector<std::string> &samples);
 
 }; // Connector
 

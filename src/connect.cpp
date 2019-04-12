@@ -41,8 +41,7 @@ int VCFLite::Connector::check() {
   exec(db, "PRAGMA integrity_check;");
 
   elapsed.mark();
-  std::clog << "[LOG] Database check completed in "
-            << elapsed << std::endl;
+  std::clog << "[LOG] Database check completed in " << elapsed << std::endl;
 
   return SQLITE_OK;
 }
@@ -54,8 +53,7 @@ int VCFLite::Connector::optimize() {
   exec(db, "PRAGMA optimize;");
 
   elapsed.mark();
-  std::clog << "[LOG] Database optimized in "
-            << elapsed << std::endl;
+  std::clog << "[LOG] Database optimized in " << elapsed << std::endl;
 
   return SQLITE_OK;
 }
@@ -67,20 +65,19 @@ int VCFLite::Connector::index() {
   creator.index(db);
 
   elapsed.mark();
-  std::clog << "[LOG] Database indexed in "
-            << elapsed << std::endl;
+  std::clog << "[LOG] Database indexed in " << elapsed << std::endl;
 
   return last_result_code;
 }
 
 int VCFLite::Connector::parseVCF(const string &vcf_file,
-                                 const optional<string> &samples) {
+                                 const vector<string> &samples) {
   std::clog << "[LOG] Parsing VCF: " << vcf_file << "\n";
 
   VCF::VCFReader reader(vcf_file);
 
-  //auto start_id_variant = Select::max_variant_id(db) + 1;
-  //auto id_variant = start_id_variant;
+  // auto start_id_variant = Select::max_variant_id(db) + 1;
+  // auto id_variant = start_id_variant;
   auto id_variant = Select::max_variant_id(db) + 1;
   int total_parsed = 0;
 
@@ -93,8 +90,7 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
     if (std::holds_alternative<VCF::VCFComment>(*ele))
       insert_comment(db, vcf_file, std::get<VCF::VCFComment>(*ele));
     else if (std::holds_alternative<VCF::VCFHeader>(*ele)) {
-      if (samples.has_value())
-        reader.provideSamples(*samples);
+      reader.provideSamples(samples);
     } else
       insert_record(db, vcf_file, id_variant++, std::get<VCF::VCFRecord>(*ele),
                     reader.getSamplesReference(), reader.getSamplesPicked());

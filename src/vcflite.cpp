@@ -1,8 +1,8 @@
 #include <iostream>
 
 #include <agizmo/args.hpp>
-#include <vcflite/connect.hpp>
 #include <agizmo/logging.hpp>
+#include <vcflite/connect.hpp>
 
 using namespace AGizmo;
 using namespace HKL;
@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   args.addPositional("db_path", "Path to new database file", true);
   args.addMulti("vcf", "Path to vcf file", 'v');
   args.addArgument("samples", "List with samples, delimetered with ','.", 's');
-  args.addSwitch("create", "Force to create db", 'c');
+  args.addSwitch("build", "Force to build db", 'b');
   args.addSwitch("optimize", "Optimize database.", 'o');
   args.addSwitch("check", "Check database integrity", 'e');
   args.addSwitch("index", "Index database", 'i');
@@ -29,18 +29,25 @@ int main(int argc, char *argv[]) {
   VCFLite::Connector db{*args.getValue("db_path"), args.isSet("create"),
                         args.isSet("disable-foreign")};
 
-  if (args.isSet("vcf")){
+  if (args.isSet("vcf")) {
     int total_records = 0;
 
     Logging::Timer insert_elapsed;
 
+    const auto samples = args.getIterable("samples", ',');
+
+    if (!samples.empty())
+      std::cerr << "Selected samples:"
+                << StringCompose::str_join(samples.begin(), samples.end(), "-")
+                << "\n";
+
     for (const auto &vcf_file : args.getIterable("vcf")) {
-      total_records += db.parseVCF(vcf_file, args.getValue("samples"));
+      total_records += db.parseVCF(vcf_file, samples);
     }
 
     insert_elapsed.mark();
-    std::clog << "[LOG] Inserted " << total_records
-              << " in " << insert_elapsed << std::endl;
+    std::clog << "[LOG] Inserted " << total_records << " in " << insert_elapsed
+              << std::endl;
   }
 
   if (args.isSet("index"))
