@@ -1,3 +1,4 @@
 [submodule "hkl"]
 	path = hkl
 	url = https://github.com/grzadr/hkl
+	branch = .
