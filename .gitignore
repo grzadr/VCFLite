@@ -42,7 +42,7 @@
 
 #User CMake files
 
-*.txt.user
+*.txt.user*
 
 #Vim temp files
 
