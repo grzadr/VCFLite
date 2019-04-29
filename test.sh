@@ -11,7 +11,7 @@ make -j 8
 DATA_DIR="${1}"
 OUTPUT_DIR="${2}"
 
-./VCFLite -h
-time ./VCFLite --create -oi -s "89,120" --vcf "${DATA_DIR}/output.ann.vcf" -e -v "${DATA_DIR}/output.ann.vcf" "${OUTPUT_DIR}/output.db"
-time ./VCFLite --create -oi --vcf "${DATA_DIR}/output.ann.vcf" -e -v "${DATA_DIR}/output.ann.vcf" "${OUTPUT_DIR}/output.db"
+./VCFLite -h || true
+time ./VCFLite --build -oi -s "89" --samples "120" --vcf="${DATA_DIR}/output.ann.vcf" -c -v="${DATA_DIR}/output.ann.vcf" "${OUTPUT_DIR}/output.db"
+time ./VCFLite --build -oi --vcf "${DATA_DIR}/output.ann.vcf" -c -v "${DATA_DIR}/output.ann.vcf" "${OUTPUT_DIR}/output.db"
 #time ./VCFLite -c -o -i -v "${DATA_DIR}/homo_sapiens-chr21.vcf" "${OUTPUT_DIR}/homo.db"
