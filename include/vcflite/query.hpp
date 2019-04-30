@@ -1,8 +1,9 @@
 #pragma once
 
+#include <iostream>
+#include <iterator>
 #include <stdexcept>
 #include <string>
-#include <iterator>
 
 using runerror = std::runtime_error;
 using std::string;
@@ -47,13 +48,11 @@ inline int exec(sqlite3 *db, It begin, const It end, bool verbose = false) {
         rc != SQLITE_DONE && rc != SQLITE_ROW && rc != SQLITE_OK)
       panic(db, *t);
 
-    if (verbose){
+    if (verbose) {
 
-      std::clog << "[LOG] Executed query "
-                << std::distance(begin, t) << "/"
+      std::clog << "[LOG] Executed query " << std::distance(begin, t) + 1 << "/"
                 << std::distance(begin, end) << std::endl;
     }
-
   }
 
   return sqlite3_finalize(stmt);
@@ -74,4 +73,4 @@ inline int finalize(sqlite3 *db, sqlite3_stmt *stmt) {
   return SQLITE_OK;
 }
 
-}  // namespace VCFLite
+} // namespace VCFLite

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <optional>
 
 #include <agizmo/args.hpp>
 #include <agizmo/logging.hpp>
@@ -7,23 +8,27 @@
 using namespace AGizmo;
 using namespace HKL;
 
-int main(int argc, char *argv[]) {
-  Args::Arguments args{};
+using std::cerr;
+using opt_int = std::optional<int>;
 
-  args.addPositional("db_path", "Path to new database file", true);
+int main(int argc, char *argv[]) {
+  Args::Arguments args{"VCFLite", "Converts VCF files into SQLite databases.",
+                       "19-04-30"};
+
+  args.addPositional("db_path", "Path to a database file", true);
   args.addMulti("vcf", "Path to vcf file", 'v');
 
-  args.addArgument("samples", "List with samples, delimetered with ','.", 's');
+  args.addArgument("samples", "List with samples, delimetered with ','", 's');
   args.enableAppend("samples", ',');
 
   args.addSwitch("build", "Force to build db", 'b');
-  args.addSwitch("optimize", "Optimize database.", 'o');
+  args.addSwitch("optimize", "Optimize database", 'o');
   args.addSwitch("check", "Check database integrity", 'c');
   args.addSwitch("index", "Index database", 'i');
   args.addSwitch("disable-foreign",
                  "Disable foreign key check during population process. "
-                 "WARNING: may result in broken database.");
-  args.addArgument("limit", "Number of rows to process", 'l', "0");
+                 "WARNING: may result in broken database");
+  args.addArgument("limit", "Positive number of rows to process", 'l');
 
   if (args.parse(argc, argv))
     return 1;
@@ -41,12 +46,25 @@ int main(int argc, char *argv[]) {
     const auto samples = args.getIterable("samples");
 
     if (!samples.empty())
-      std::cerr << "Selected samples:"
-                << StringCompose::str_join(samples.begin(), samples.end(), "-")
-                << "\n";
+      cerr << "Selected samples: "
+           << StringCompose::str_join(samples.begin(), samples.end(), " - ")
+           << "\n";
+
+    opt_int limit;
+    if (const auto temp_limit = args.getValue("limit")) {
+      limit = StringFormat::str_to_int(*temp_limit);
+      if (!limit.has_value())
+        throw runerror{"Limit must be a positive number, not '" + *temp_limit +
+                       "'"};
+    }
 
     for (const auto &vcf_file : args.getIterable("vcf")) {
-      total_records += db.parseVCF(vcf_file, samples);
+      if (limit && limit < 1)
+        break;
+      total_records += db.parseVCF(vcf_file, samples, limit);
+      cerr << total_records << "\n";
+      if (limit)
+        *limit -= total_records;
     }
 
     insert_elapsed.mark();

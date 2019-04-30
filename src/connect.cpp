@@ -71,21 +71,27 @@ int VCFLite::Connector::index() {
 }
 
 int VCFLite::Connector::parseVCF(const string &vcf_file,
-                                 const vector<string> &samples) {
+                                 const vector<string> &samples, opt_int limit) {
   std::clog << "[LOG] Parsing VCF: " << vcf_file << "\n";
 
   VCF::VCFReader reader(vcf_file);
 
-  // auto start_id_variant = Select::max_variant_id(db) + 1;
-  // auto id_variant = start_id_variant;
-  auto id_variant = Select::max_variant_id(db) + 1;
+  const auto initial_id_variant = Select::max_variant_id(db);
+  auto id_variant = initial_id_variant + 1;
   int total_parsed = 0;
+
+  Logging::Timer total_time;
+  Logging::Timer elapsed;
 
   transaction(db);
 
+  std::cerr << limit.value_or(-1) << "\n";
+
   while (auto ele = reader()) {
+    if (limit && total_parsed >= *limit)
+      break;
     if (++total_parsed % 5000 == 0)
-      std::clog << "Last inserted id: " << id_variant << "\n";
+      std::clog << "Parsed " << total_parsed << " lines\n";
 
     if (std::holds_alternative<VCF::VCFComment>(*ele))
       insert_comment(db, vcf_file, std::get<VCF::VCFComment>(*ele));
@@ -96,13 +102,22 @@ int VCFLite::Connector::parseVCF(const string &vcf_file,
                     reader.getSamplesReference(), reader.getSamplesPicked());
   }
 
+  elapsed.mark();
+
   std::clog << "[LOG] Completed VCF: " << vcf_file
-            << ";Inserted records: " << total_parsed << " "
-            << "[LOG] Commiting changes\n";
+            << ";Inserted : " << id_variant - initial_id_variant
+            << " records in " << elapsed << "\n[LOG] Commiting changes\n";
+
+  elapsed.reset();
 
   commit(db);
 
-  std::clog << "[LOG] Parsing Completed\n";
+  elapsed.mark();
+
+  std::clog << "[LOG] Commited in " << elapsed << "\n";
+  total_time.mark();
+
+  std::clog << "[LOG] Parsing Completed in " << total_time << "\n";
 
   return total_parsed;
 }

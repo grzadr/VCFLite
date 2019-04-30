@@ -17,6 +17,7 @@ using namespace HKL;
 using runerror = std::runtime_error;
 using std::optional;
 using std::string;
+using opt_int = std::optional<int>;
 
 namespace VCFLite {
 
@@ -48,7 +49,8 @@ public:
   int optimize();
   int index();
 
-  int parseVCF(const string &vcf_file, const vector<std::string> &samples);
+  int parseVCF(const string &vcf_file, const vector<std::string> &samples,
+               opt_int limit);
 
 }; // Connector
 
