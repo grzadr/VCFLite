@@ -37,7 +37,7 @@ target_link_libraries(VCFLite sqlite3)
 target_compile_options(VCFLite PRIVATE
     -Werror -Wall
     -pthread -O3
-    -mtune=generic -march=generic
+    -mtune=generic -march=x86-64
     -pipe -fPIE -fPIC)
 
 install(TARGETS VCFLite  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
